@@ -15,8 +15,12 @@ class GaiaQueryParameters:
             n_stars: int = 500000,
             random_set: bool = True,
             ranset_mod: int = 50,
-            guarantee_rad_velocity: bool = True
+            guarantee_rad_velocity: bool = True,
+            batch_num: int = 0
         ):
+        if batch_num >= ranset_mod:
+            raise Exception(f"Batch number must be a positive number less than ranset_mod. {batch_num=}, {ranset_mod=}")
+        
         self.parallax_lower_bound = parallax_lower_bound
         self.parallax_over_error_lower_bound = parallax_over_error_lower_bound
         self.ruwe_upper_bound = ruwe_upper_bound
@@ -25,6 +29,8 @@ class GaiaQueryParameters:
         self.random_set = random_set
         self.guarantee_rad_velocity = guarantee_rad_velocity
         self.ranset_mod = ranset_mod
+        self.batch_num = batch_num
+
 
 class GaiaQueryWrapper:
    
@@ -122,7 +128,7 @@ class GaiaQueryWrapper:
             query += " AND g.radial_velocity IS NOT NULL"
 
         if self.qp.random_set:
-            query += f" AND MOD(g.random_index, {self.qp.ranset_mod}) = 0"
+            query += f" AND MOD(g.random_index, {self.qp.ranset_mod}) = {self.qp.batch_num}"
 
         job = Gaia.launch_job(query)
         return job.get_results()
