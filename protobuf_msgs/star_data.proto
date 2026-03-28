@@ -2,8 +2,11 @@ syntax = "proto3";
 
 package mwm_msgs;
 
+// All timestamps should time since epoch in seconds
+
 message Star {
 	int64 id = 1;
+    int32 timestamp = 8;
 	
 	double pos_x = 2;
 	double pos_y = 3;
@@ -18,4 +21,10 @@ message Star {
 
 message StarData {
     repeated Star stars = 1;
+    int32 timestamp = 2;
+}
+
+message DataRequest {
+    int32 timestamp = 1;
+    string node_name = 2;
 }

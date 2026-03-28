@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import star_data_pb2
 
 class GaiaDataProcessor():
 
@@ -7,6 +8,9 @@ class GaiaDataProcessor():
         pass
 
     def process_data(self, df: pd.DataFrame):
+        pass
+
+    def _fill_protobuf_msg(self, df: pd.DataFrame):
         pass
 
     def _calculate_cartesian_coordinates(self, df: pd.DataFrame):

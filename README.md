@@ -10,9 +10,6 @@ Motion:
 C++ Vis <-> Motion Processing Node <- Gaia Data Node
 
 
-
-SIMBAD Node?
-
 ## Dependencies
 
 ProtoBuf:

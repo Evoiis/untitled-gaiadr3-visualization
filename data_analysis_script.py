@@ -1,4 +1,5 @@
-from gaia_query import GaiaQueryWrapper, GaiaQueryParameters
+from download_node.src.gaia_query import GaiaQueryWrapper, GaiaQueryParameters
+from download_node.src.gaia_data_processor import GaiaDataProcessor
 import pandas as pd
 import os
 
@@ -20,7 +21,7 @@ print(f"{df.isna().sum()=}")
 print(f"{len(df)=}")
 
 
-from gaia_data_processor import GaiaDataProcessor
+
 
 gdp = GaiaDataProcessor()
 gdp._calculate_cartesian_coordinates(df)
