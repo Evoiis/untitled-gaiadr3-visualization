@@ -20,6 +20,7 @@ ProtoBuf:
 
 ## C++ Notes
 
+`git submodule update --init -- recursive`
 
 ## Python Notes
 

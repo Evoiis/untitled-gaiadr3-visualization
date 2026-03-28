@@ -33,7 +33,6 @@ class GaiaQueryWrapper:
         self.qp = query_parameters
         self.file_name = file_name
 
-
     def get_data(self):
         file_read = self._read_from_file()
         if file_read is not None:
