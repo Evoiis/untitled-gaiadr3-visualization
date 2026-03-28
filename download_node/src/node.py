@@ -1,11 +1,9 @@
 import zmq
+import logging
+
 import star_data_pb2
 
-# sd = star_data_pb2.StarData()
-# print(sd.SerializeToString())
-# k = star_data_pb2.StarData()
-# k.ParseFromString(sd.SerializeToString())
-
+logger = logging.getLogger(__name__)
 
 class DownloadNode():
 
@@ -36,7 +34,7 @@ class DownloadNode():
         except KeyboardInterrupt:
             pass
             
-        print("Shutting down Download Node")
+        logger.info("Shutting down Download Node")
         self._shutdown()
     
     def stop_loop(self):
@@ -55,7 +53,7 @@ class DownloadNode():
             data_req = star_data_pb2.DataRequest()
             data_req.ParseFromString(received)
 
-            print(f"Received request at {data_req.timestamp} from {data_req.node_name}")
+            logger.info(f"Received request at {data_req.timestamp} from {data_req.node_name}")
 
             if self.data is None:
                 self.data = self.data_processor.process_data(self.download_wrapper.get_data())

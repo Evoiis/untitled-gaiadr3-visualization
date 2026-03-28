@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import time
+
 import star_data_pb2
 
 class GaiaDataProcessor():
@@ -8,10 +10,32 @@ class GaiaDataProcessor():
         pass
 
     def process_data(self, df: pd.DataFrame):
-        pass
+        self._calculate_cartesian_coordinates(df)
+        self._calculate_rgb_color(df)
+        self._calculate_star_brightness(df)
+        self._calculate_star_size(df)
 
-    def _fill_protobuf_msg(self, df: pd.DataFrame):
-        pass
+        return self._serialize_into_msg(df)
+
+    def _serialize_into_msg(self, df: pd.DataFrame):
+        stars = star_data_pb2.Stars()
+        stars.timestamp = int(time.time())
+
+        df[["color_r", "color_g", "color_b"]] = df[["color_r", "color_g", "color_b"]].astype(int)
+
+        for row in df.itertuples(index=False):
+            star = stars.stars.add()
+            star.id = row.source_id
+            star.pos_x = row.pos_x
+            star.pos_y = row.pos_y
+            star.pos_z = row.pos_z
+            star.color_r = row.color_r
+            star.color_g = row.color_g
+            star.color_b = row.color_b
+            star.brightness = row.brightness
+            star.size = row.size        
+        
+        return stars.SerializeToString()
 
     def _calculate_cartesian_coordinates(self, df: pd.DataFrame):
         df["ra_rad"] = np.deg2rad(df["ra"].values)
@@ -73,8 +97,6 @@ class GaiaDataProcessor():
         brightness_norm = np.clip((brightness - b_min) / (b_max - b_min), 0.0, 1.0)
         
         df["brightness"] = brightness_norm
-        df["alpha"] = np.clip(0.2 + brightness_norm * 0.8, 0.0, 1.0)  # 0.2 floor so dim stars are still visible
-
 
     def _calculate_star_size(self, df: pd.DataFrame):
         # Primary: teff_gspphot — hotter stars are physically larger on the main sequence

@@ -27,10 +27,9 @@ class MockDataProcessor():
 
 TEST_SERVER_PORT = 5556
 TEST_STRING = "TEST STRING"
-        
+logger = logging.getLogger(__name__)
 
 def test_download_node_req():
-    logging.warning("Start")
     mdw = MockDownloadWrapper(TEST_STRING)
     mdp = MockDataProcessor()
     dnode = DownloadNode(
@@ -45,7 +44,7 @@ def test_download_node_req():
     socket = zmq_context.socket(zmq.REQ)
     socket.setsockopt(zmq.RCVTIMEO, 5000) # recv timeout after 5 second
 
-    logging.warning("Init Complete, now connect")
+    logger.debug("Init Complete, now connect")
     socket.connect(f"tcp://localhost:{TEST_SERVER_PORT}")      
     
     data_req = star_data_pb2.DataRequest()
@@ -53,7 +52,7 @@ def test_download_node_req():
     data_req.node_name = "Test Node"
     socket.send(data_req.SerializeToString())
 
-    logging.warning("Sent waiting for reply.")
+    logger.debug("Sent waiting for reply.")
     
     try:
         message = socket.recv()
@@ -66,7 +65,7 @@ def test_download_node_req():
     received_data_req = star_data_pb2.DataRequest()
     received_data_req.ParseFromString(message)
 
-    logging.warning(f"Received Message: {received_data_req.node_name}")
+    logger.debug(f"Received Message: {received_data_req.node_name}")
 
     dnode.stop_loop()
     dnode_thread.join()

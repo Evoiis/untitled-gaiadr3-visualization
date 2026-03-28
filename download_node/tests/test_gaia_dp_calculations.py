@@ -152,19 +152,12 @@ class TestStarBrightness:
         df = self._base_df(lum=[1.0], mag=[15.0])
         proc()._calculate_star_brightness(df)
         assert "brightness" in df.columns
-        assert "alpha" in df.columns
 
     def test_brightness_normalized_range(self):
         df = self._base_df(lum=[1e-3, 1.0, 1e3, 1e6], mag=[15.0] * 4)
         proc()._calculate_star_brightness(df)
         assert (df["brightness"] >= 0.0).all()
         assert (df["brightness"] <= 1.0).all()
-
-    def test_alpha_range(self):
-        df = self._base_df(lum=[1e-3, 1.0, 1e6], mag=[15.0] * 3)
-        proc()._calculate_star_brightness(df)
-        assert (df["alpha"] >= 0.2).all()
-        assert (df["alpha"] <= 1.0).all()
 
     def test_brighter_lum_higher_brightness(self):
         df = self._base_df(lum=[0.01, 1.0, 100.0], mag=[15.0] * 3)
@@ -197,7 +190,6 @@ class TestStarBrightness:
         )
         proc()._calculate_star_brightness(df)
         assert not df["brightness"].isna().any()
-        assert not df["alpha"].isna().any()
 
 
 # ---------------------------------------------------------------------------
