@@ -103,10 +103,13 @@ class GaiaQueryWrapper:
                 g.teff_gspphot,
                 g.logg_gspphot,
                 ap.lum_flame,
-                ap.radius_flame
+                ap.radius_flame,
+                h.original_ext_source_id
             FROM gaiadr3.gaia_source g
             LEFT JOIN gaiadr3.astrophysical_parameters ap
                 ON g.source_id = ap.source_id
+            LEFT JOIN gaiadr3.hipparcos2_best_neighbour h
+                ON g.source_id = h.source_id
             WHERE
                 g.parallax > {self.qp.parallax_lower_bound}
                 AND g.parallax_over_error > {self.qp.parallax_over_error_lower_bound}
@@ -123,21 +126,3 @@ class GaiaQueryWrapper:
         job = Gaia.launch_job(query)
         return job.get_results()
 
-
-if __name__ == "__main__":
-    # Test patch — solar neighborhood, runs synchronously
-    print("Running test query...")
-    gqw = GaiaQueryWrapper()
-    results = gqw._send_gaia_query(100, 5, 1.4, 21) # Test Query
-    df = results.to_pandas()
-    df = gqw._calculate_cartesian_coordinates(df)
-
-    df.to_csv("df.csv")
-
-    print(f"Query returned {len(results)} stars")
-    print(results[:5])
-
-    write_results_to_file = False
-
-    if write_results_to_file:
-      results.write("results.csv", format="pandas.csv")

@@ -1,5 +1,5 @@
-from download_node.src.gaia_query import GaiaQueryWrapper, GaiaQueryParameters
-from download_node.src.gaia_data_processor import GaiaDataProcessor
+from src.gaia_query import GaiaQueryWrapper, GaiaQueryParameters
+from src.gaia_data_processor import GaiaDataProcessor
 import pandas as pd
 import os
 
@@ -7,12 +7,15 @@ import os
 Quick script to look at the data we're getting from a gaia query.
 """
 
-file_name = "analysis_data_rv_500k_ranmod50_x.csv"
+file_name = "analysis_data_rv_5k_ranmod50_x.csv"
 
 if os.path.exists(file_name):
     df = pd.read_csv(file_name)
 else:
-    gqw = GaiaQueryWrapper(GaiaQueryParameters(guarantee_rad_velocity=True), wr_to_file=False)
+    gqw = GaiaQueryWrapper(GaiaQueryParameters(
+        guarantee_rad_velocity=True,
+        n_stars=5000
+    ), wr_to_file=False)
     df : pd.DataFrame = gqw.get_data()
     df.to_csv(file_name)
 
@@ -23,7 +26,7 @@ print(f"{len(df)=}")
 
 
 
-gdp = GaiaDataProcessor()
+gdp = GaiaDataProcessor("data/")
 gdp._calculate_cartesian_coordinates(df)
 gdp._calculate_rgb_color(df)
 

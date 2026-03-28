@@ -15,7 +15,7 @@ def make_df(**kwargs) -> pd.DataFrame:
 
 
 def proc() -> GaiaDataProcessor:
-    return GaiaDataProcessor()
+    return GaiaDataProcessor("data/")
 
 
 # ---------------------------------------------------------------------------

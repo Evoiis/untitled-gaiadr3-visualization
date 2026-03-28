@@ -6,14 +6,17 @@ import star_data_pb2
 
 class GaiaDataProcessor():
 
-    def __init__(self):
-        pass
+    def __init__(self, data_folder_path: str):
+        iau_data = pd.read_csv(data_folder_path + "iau_stars.csv")
+        iau_data = iau_data[iau_data['HIP'].notna()]
+        self.hip_to_name = dict(zip(iau_data["HIP"].dropna().astype(int), iau_data["Proper Names"]))
 
     def process_data(self, df: pd.DataFrame):
         self._calculate_cartesian_coordinates(df)
         self._calculate_rgb_color(df)
         self._calculate_star_brightness(df)
         self._calculate_star_size(df)
+        self._match_star_names(df)
 
         return self._serialize_into_msg(df)
 
@@ -33,9 +36,14 @@ class GaiaDataProcessor():
             star.color_g = row.color_g
             star.color_b = row.color_b
             star.brightness = row.brightness
-            star.size = row.size        
-        
+            star.size = row.size
+            if "star_name" in row:
+                star.name = row.star_name
+
         return stars.SerializeToString()
+    
+    def _match_star_names(self, df: pd.DataFrame):       
+        df["star_name"] = df["original_ext_source_id"].map(self.hip_to_name).fillna("")
 
     def _calculate_cartesian_coordinates(self, df: pd.DataFrame):
         df["ra_rad"] = np.deg2rad(df["ra"].values)

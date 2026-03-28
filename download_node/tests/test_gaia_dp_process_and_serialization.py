@@ -23,6 +23,7 @@ def make_raw_df(**kwargs) -> pd.DataFrame:
         phot_g_mean_mag=[12.0, 15.0],
         lum_flame=[1.0, np.nan],
         teff_gspphot=[5500.0, np.nan],
+        original_ext_source_id=[np.nan, 7588],
     )
     defaults.update(kwargs)
     return pd.DataFrame(defaults)
@@ -40,11 +41,12 @@ def make_processed_df() -> pd.DataFrame:
         color_b=[255, 0],
         brightness=[0.4, 0.7],
         size=[2.5, 6.0],
+        name=["", "Achernar"],
     ))
 
 
 def proc() -> GaiaDataProcessor:
-    return GaiaDataProcessor()
+    return GaiaDataProcessor("data/")
 
 
 def deserialize(blob: bytes) -> star_data_pb2.Stars:
@@ -197,10 +199,11 @@ class TestProcessData:
         p._calculate_rgb_color             = lambda df: calls.append("color")
         p._calculate_star_brightness       = lambda df: calls.append("brightness")
         p._calculate_star_size             = lambda df: calls.append("size")
+        p._match_star_names                = lambda df: calls.append("match")
         p._serialize_into_msg              = lambda df: calls.append("serialize") or b""
 
         p.process_data(make_raw_df())
-        assert calls == ["cartesian", "color", "brightness", "size", "serialize"]
+        assert calls == ["cartesian", "color", "brightness", "size", "match", "serialize"]
 
     def test_timestamp_present_in_output(self):
         df = make_raw_df()
