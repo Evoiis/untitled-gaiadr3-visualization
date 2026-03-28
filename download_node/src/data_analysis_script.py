@@ -1,4 +1,4 @@
-from download_node.src.gaia_query import GaiaQueryWrapper
+from gaia_query import GaiaQueryWrapper, GaiaQueryParameters
 import pandas as pd
 import os
 
@@ -6,12 +6,12 @@ import os
 Quick script to look at the data we're getting from a gaia query.
 """
 
-file_name = "analysis_data_rv_500k_ranmod50.csv"
+file_name = "analysis_data_rv_500k_ranmod50_x.csv"
 
 if os.path.exists(file_name):
     df = pd.read_csv(file_name)
 else:
-    gqw = GaiaQueryWrapper()
+    gqw = GaiaQueryWrapper(GaiaQueryParameters(guarantee_rad_velocity=True), wr_to_file=False)
     df : pd.DataFrame = gqw.get_data()
     df.to_csv(file_name)
 
