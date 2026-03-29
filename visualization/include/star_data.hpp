@@ -8,19 +8,19 @@
 
 #include <glm/glm.hpp>
 
-using StarMapPtr = std::shared_ptr<std::map<int, StarData>>;
 
 struct StarData {
     glm::vec3 position_xyz; // Parsecs    
     glm::vec3 color_rgb; // 0-255
-
+    
     float brightness;
     float size;
-
+    
     std::string name;
-    int gaia_id;
 };
 
+using StarMap = std::map<int64_t, StarData>;
+using StarMapPtr = std::shared_ptr<StarMap>;
 class SharedStars{
 public:
     StarMapPtr m_stars;

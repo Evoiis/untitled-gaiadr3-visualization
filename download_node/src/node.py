@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class DownloadNode():
 
-    def __init__(self, download_wrapper, data_processor, server_port: int, preload_data: bool = False):
+    def __init__(self, download_wrapper, data_processor, server_port: int, preload_data: bool = False, n_batches: int = 1):
         """
         Input:
         - download_wrapper/data_processor, inject classes to get/process data with
@@ -26,6 +26,7 @@ class DownloadNode():
         self.data = None
 
         self.stop = False
+        self.n_batches = n_batches
 
         if preload_data:
             self.get_and_process_data()
@@ -35,7 +36,7 @@ class DownloadNode():
 
     def get_and_process_data(self):
         if self.data is None:
-            self.data = self.data_processor.process_data(self.download_wrapper.get_data())
+            self.data = self.data_processor.process_data(self.download_wrapper.get_data(self.n_batches))
         return self.data
 
     def run_node(self):

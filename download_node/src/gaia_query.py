@@ -16,7 +16,7 @@ class GaiaQueryParameters:
             parallax_over_error_lower_bound: float = 5.0,
             ruwe_upper_bound: float = 1.4,
             phot_g_mean_mag_upper_bound: int = 15,
-            n_stars_per_batch: int = 500000,
+            n_stars_per_batch: int = 100000,
             use_random_set: bool = True,
             random_set_modulo: int = 50,
             guarantee_rad_velocity: bool = True,
@@ -55,22 +55,8 @@ class GaiaQueryWrapper:
         self.qp = query_parameters
         self.file_name = file_name
 
-    def get_data(self):
-        file_read = self._read_from_file()
-        if file_read is not None:
-            logging.info("Found existing data locally.")
-            return file_read
-        
-        else:
-            logging.info("Sending Query to Gaia archive.")
-
-            data = self._send_gaia_query()
-            logging.info("Received result from Gaia archive.")
-            df = data.to_pandas()
-
-            self._write_to_file(df)
-
-            return df
+    def get_data(self, number_of_batches):
+        return self.get_batches(number_of_batches)
     
     def get_batches(self, number_of_batches: int):
         """
@@ -78,8 +64,8 @@ class GaiaQueryWrapper:
         Gaia Archives returns around 250000 stars maximum per query
         """
 
-        if not self.qp.use_random_set:
-            raise Exception("use_random_set parameter must be true")
+        if number_of_batches > 1 and not self.qp.use_random_set:
+            raise Exception("use_random_set parameter must be true to download multiple batches")
         
         if number_of_batches <= 0 or number_of_batches >= self.qp.random_set_modulo:
             raise Exception(f"number_of_batches must be a postiive number less than random_set_modulo: {number_of_batches=}, {self.qp.random_set_modulo=}")

@@ -19,9 +19,10 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/submodules/imgui)
 
 add_executable(main
-    # src/main.cpp
-    src/vis.cpp
+    src/main.cpp
+    # src/vis.cpp
     src/shader.cpp
+    src/node.cpp
 
     # Protobuf
     ${PROTO_SRCS}
