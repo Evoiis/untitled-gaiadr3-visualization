@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fstar_data.proto\x12\x08mwm_msgs\"\xb4\x01\n\x08StarData\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x11\n\x04name\x18\x07 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05pos_x\x18\x02 \x01(\x01\x12\r\n\x05pos_y\x18\x03 \x01(\x01\x12\r\n\x05pos_z\x18\x04 \x01(\x01\x12\x12\n\nbrightness\x18\x05 \x01(\x02\x12\x0c\n\x04size\x18\x06 \x01(\x02\x12\x0f\n\x07\x63olor_r\x18\x08 \x01(\x05\x12\x0f\n\x07\x63olor_g\x18\t \x01(\x05\x12\x0f\n\x07\x63olor_b\x18\n \x01(\x05\x42\x07\n\x05_name\"\x87\x01\n\x05Stars\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12)\n\x05stars\x18\x02 \x03(\x0b\x32\x1a.mwm_msgs.Stars.StarsEntry\x1a@\n\nStarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.mwm_msgs.StarData:\x02\x38\x01\"3\n\x0b\x44\x61taRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x11\n\tnode_name\x18\x02 \x01(\tb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fstar_data.proto\x12\x08mwm_msgs\"\xa8\x01\n\x08StarData\x12\x11\n\x04name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05pos_x\x18\x02 \x01(\x01\x12\r\n\x05pos_y\x18\x03 \x01(\x01\x12\r\n\x05pos_z\x18\x04 \x01(\x01\x12\x12\n\nbrightness\x18\x05 \x01(\x02\x12\x0c\n\x04size\x18\x06 \x01(\x02\x12\x0f\n\x07\x63olor_r\x18\x07 \x01(\x05\x12\x0f\n\x07\x63olor_g\x18\x08 \x01(\x05\x12\x0f\n\x07\x63olor_b\x18\t \x01(\x05\x42\x07\n\x05_name\"\x87\x01\n\x05Stars\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12)\n\x05stars\x18\x02 \x03(\x0b\x32\x1a.mwm_msgs.Stars.StarsEntry\x1a@\n\nStarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.mwm_msgs.StarData:\x02\x38\x01\"3\n\x0b\x44\x61taRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x11\n\tnode_name\x18\x02 \x01(\tb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'star_data_pb2', globals())
@@ -23,11 +23,11 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _STARS_STARSENTRY._options = None
   _STARS_STARSENTRY._serialized_options = b'8\001'
   _STARDATA._serialized_start=30
-  _STARDATA._serialized_end=210
-  _STARS._serialized_start=213
-  _STARS._serialized_end=348
-  _STARS_STARSENTRY._serialized_start=284
-  _STARS_STARSENTRY._serialized_end=348
-  _DATAREQUEST._serialized_start=350
-  _DATAREQUEST._serialized_end=401
+  _STARDATA._serialized_end=198
+  _STARS._serialized_start=201
+  _STARS._serialized_end=336
+  _STARS_STARSENTRY._serialized_start=272
+  _STARS_STARSENTRY._serialized_end=336
+  _DATAREQUEST._serialized_start=338
+  _DATAREQUEST._serialized_end=389
 # @@protoc_insertion_point(module_scope)

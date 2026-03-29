@@ -33,7 +33,6 @@ class GaiaDataProcessor():
 
         for row in df.itertuples(index=False):
             star = stars.stars[row.source_id]
-            star.id = row.source_id
             star.pos_x = row.pos_x
             star.pos_y = row.pos_y
             star.pos_z = row.pos_z

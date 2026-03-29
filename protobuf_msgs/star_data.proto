@@ -5,8 +5,7 @@ package mwm_msgs;
 // All timestamps should time since epoch in seconds
 
 message StarData {
-	int64 id = 1;
-	optional string name = 7;
+	optional string name = 1;
 	
 	double pos_x = 2;
 	double pos_y = 3;
@@ -15,9 +14,9 @@ message StarData {
 	float brightness = 5;
     float size = 6;
 	
-	int32 color_r = 8;
-	int32 color_g = 9;
-	int32 color_b = 10;
+	int32 color_r = 7;
+	int32 color_g = 8;
+	int32 color_b = 9;
 }
 
 message Stars {
