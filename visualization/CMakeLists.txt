@@ -24,6 +24,10 @@ add_executable(main
     src/shader.cpp
     src/node.cpp
 
+    src/camera.cpp
+    src/bloom_pipeline.cpp
+    src/imgui_ui.cpp
+
     # Protobuf
     ${PROTO_SRCS}
     ${PROTO_HDRS}
