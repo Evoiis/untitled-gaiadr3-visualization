@@ -551,7 +551,7 @@ int main(){
         glfwPollEvents();
     }  
 
-    std::cout << "Terminating." << std::endl;
+    std::cout << "Terminating Visualization" << std::endl;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

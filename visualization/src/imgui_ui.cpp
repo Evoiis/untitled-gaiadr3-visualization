@@ -1,9 +1,11 @@
 #include "imgui_ui.hpp"
 
-ImguiUI::ImguiUI(GLFWwindow * window, float close_label_clip, float far_label_clip){
+ImguiUI::ImguiUI(float close_label_clip, float far_label_clip){
     m_far_label_clip = far_label_clip;
     m_close_label_clip = close_label_clip;
+}
 
+void ImguiUI::initialize_imgui(GLFWwindow * window){
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -14,6 +16,12 @@ ImguiUI::ImguiUI(GLFWwindow * window, float close_label_clip, float far_label_cl
 
 void ImguiUI::render_ui(){
 
+}
+
+void ImguiUI::shutdown(){
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();    
 }
 
 

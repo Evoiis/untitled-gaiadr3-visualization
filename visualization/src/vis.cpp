@@ -4,6 +4,7 @@ Visualization::Visualization(
     std::shared_ptr<SharedStars> shared_stars_ptr,
     Camera &camera,
     BloomPipeline &bp,
+    ImguiUI &ui,
     float point_scale,
     int width,
     int height
@@ -23,16 +24,16 @@ Visualization::Visualization(
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     #endif
 
-    GLFWwindow* window = glfwCreateWindow(width, height, "Star Vis", NULL, NULL);
-    if (window == NULL)
+    GLFWwindow* m_window = glfwCreateWindow(width, height, "Star Vis", NULL, NULL);
+    if (m_window == NULL)
     {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return;
     }
 
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwMakeContextCurrent(m_window);
+    glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
     glewExperimental = GL_TRUE;
     glewInit();
     glClearColor(0.f, 0.f, 0.f, 1.0f); // Clear with black
@@ -59,6 +60,9 @@ Visualization::Visualization(
 
     // Init Bloom Pipeline
     bp.initialize_pipeline(width, height);
+
+    // Init Imgui UI
+    ui.initialize_imgui(m_window);
     
 }
 
@@ -87,6 +91,15 @@ void Visualization::run(){
 
 void Visualization::render_loop(){
     
+    while(!glfwWindowShouldClose(m_window)){
+
+
+
+    }
+
+    std::cout << "Terminating Visualization" << std::endl;
+    
+    glfwTerminate();
 }
 
 void Visualization::framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -94,8 +107,8 @@ void Visualization::framebuffer_size_callback(GLFWwindow* window, int width, int
     glViewport(0, 0, width, height);
 }  
 
-void Visualization::process_input(GLFWwindow * window){
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
-        glfwSetWindowShouldClose(window, true);
+void Visualization::process_input(){
+    if(glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+        glfwSetWindowShouldClose(m_window, true);
     }
 }

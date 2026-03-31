@@ -15,9 +15,13 @@
 class ImguiUI{
 public:
 
-    ImguiUI(GLFWwindow * window, float close_label_clip, float far_label_clip);
+    ImguiUI(float close_label_clip, float far_label_clip);
+
+    void initialize_imgui(GLFWwindow * window);
 
     void render_ui();
+
+    void shutdown();
 
 private:
     float m_far_label_clip;

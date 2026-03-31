@@ -23,6 +23,7 @@ public:
         std::shared_ptr<SharedStars> shared_stars_ptr,
         Camera &camera,
         BloomPipeline &bp,
+        ImguiUI &ui,
         float point_scale = 2.0f,
         int width = 1280,
         int height = 720
@@ -37,7 +38,7 @@ private:
     int m_window_height;
     unsigned int m_stars_VAO;
     unsigned int m_stars_VBO;
-    GLFWwindow* window;
+    GLFWwindow* m_window;
 
     float m_point_scale;
 
@@ -49,7 +50,7 @@ private:
 
     void render_loop();
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-    void process_input(GLFWwindow* window);
+    void process_input();
 
 };
 
