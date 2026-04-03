@@ -12,6 +12,7 @@ Galpy Orbit Integration Performance on a AMD Ryzen 7 7700X 8-Core CPU.
 
 
 ![Orbit Benchmark Plot](./orbit_calculation_time_vs_time_step.png)
+***Figure A***
 
 | Time Step (t_end) | Avg Time (1M stars, sec) | Avg Time (2M stars, sec) |
 | --- | --- | --- |
@@ -30,12 +31,15 @@ Galpy Orbit Integration Performance on a AMD Ryzen 7 7700X 8-Core CPU.
 
 ### 2 Million stars vs 2 Thousand stars
 
-5 timesteps with each step the size of t_end.
+5 timesteps.
+
+Time range: 0 to t_end * 5
 
 Ex. t_end = 0.1, 5 timesteps generated from 0 to 0.5
 
 
 ![2M vs 2k 5 Timesteps Benchmark](./orbit_5by5.png)
+***Figure B***
 
 | t_end | Average time_taken (200k) | Average time_taken (2M) |
 | --- | --- | --- |
@@ -54,6 +58,7 @@ Ex. t_end = 0.1, 5 timesteps generated from 0 to 0.5
 ### 2 Million Stars, Compare Shifts and Step 1,2,4
 
 ![Steps/Shifts Comparison](./Steps%20&%20Shifts%20Comparisons.png)
+***Figure C***
 
 ### Markdown Table
 
@@ -80,6 +85,6 @@ Ex. t_end = 0.1, 5 timesteps generated from 0 to 0.5
     - No point in using data closer to the integration target time range
 - Significant jump from 1 timestep to 2 timestep integration
     - Might be worth integrating 1 timestep at a time
-
+- Time range (*abs(t_start - t_end)*) increases also significantly increases time taken (Figure B vs Figure C data)
 
 
