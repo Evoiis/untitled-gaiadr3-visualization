@@ -1,7 +1,11 @@
 # Orbit Integration
 
-## Dependencies
+Planned to use galpy orbit integrate directly for motion.
 
+Also attempting to train an MLP(multi-layer perceptron) to create a speedier alternative.
+
+
+## Dependencies
 
 Cuda 13.0.0 Install
 ```
@@ -13,3 +17,5 @@ sudo cp /var/cuda-repo-ubuntu2404-13-0-local/cuda-*-keyring.gpg /usr/share/keyri
 sudo apt-get update
 sudo apt-get -y install cuda-toolkit-13-0
 ```
+
+
