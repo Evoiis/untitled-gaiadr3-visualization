@@ -26,4 +26,13 @@ Trained first orbit_mlp.pt model on training_data.
 ~75 parsecs of error.
 One shot predict, cost 0.5 sec. (Should also test batch predict.)
 
-Not the perfect result but still lots of things to try.
+Far from the perfect result but still lots of things to try.
+- Larger Dataset
+    - Marginal improvement
+        - Doesn't seem like lack of data is a major issue at the moment
+- SiLU over relu
+    - Significant improvement with silu
+- Changing input features
+    - Time --> Fourier features mapping
+    - add r0 = sqrt(x0,y0)
+- Edit hidden layers

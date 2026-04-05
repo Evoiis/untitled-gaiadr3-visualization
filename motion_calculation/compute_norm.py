@@ -1,9 +1,8 @@
-from orbit_mlp import compute_norm_stats
+from orbit_mlp import compute_norm_stats_from_files
 
-compute_norm_stats(
+compute_norm_stats_from_files(
     [
-        "training_data",
-        "training_data_2",
+        "training_data_3",
     ],
-    "orbit_norm_2.json"
+    "orbit_norm_6.json"
 )

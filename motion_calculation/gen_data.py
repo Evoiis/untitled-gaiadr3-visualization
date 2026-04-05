@@ -1,10 +1,9 @@
-import numpy as np
-import pandas as pd
 from galpy.orbit import Orbit
 from galpy.potential import MWPotential2014
+import numpy as np
+
 import time
 import math
-from sys import getsizeof
 import os
 
 
@@ -44,9 +43,8 @@ def generate_training_set(n_stars, n_timesteps=100):
     dec              = np.degrees(np.arcsin(np.random.uniform(-1, 1, n_stars)))
     parallax         = np.exp(np.random.uniform(np.log(0.275), np.log(800), n_stars))
     radial_velocity  = np.random.uniform(-500, 500, n_stars)
-    times            = np.linspace(-3, 3, n_timesteps)
+    times            = np.linspace(-1, 1, n_timesteps)
     
-    # Fill galpy orbit
     dist_kpc = 1 / parallax
     max_pm   = 500 / (4.74 * dist_kpc)  # max pm for 500 km/s
     pmra     = np.random.uniform(-1, 1, n_stars) * max_pm
@@ -98,14 +96,9 @@ def write_data(n_stars, batch_size, data_folder):
         np.save(f"{data_folder}/orbit_train_part{i:04d}.npy", data)
 
 def main():
-    write_data(1000000, 10000, "training_data_2")
-    # write_data(100000, 10000, "validation_data")
-    # write_data(100000, 10000, "test_data")
-
-    # data = generate_training_set(5,2)
-    # print(data)
-    # np.savetxt("short.csv", data, delimiter=",")
-
+    write_data(1000000, 10000, "training_data_3")
+    write_data(100000, 10000, "validation_data_3")
+    write_data(100000, 10000, "test_data_3")
     
 
 if __name__ == "__main__":

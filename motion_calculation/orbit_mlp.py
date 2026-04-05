@@ -2,16 +2,15 @@
 Orbit MLP - Surrogate model for galpy orbit integration
 Predicts heliocentric XYZ position (parsecs) from initial conditions + time
 
-Input:  (x0, y0, z0, vx0, vy0, vz0, t) - position in parsecs, velocity in pc/Gyr, time in Gyr
-Output: (x, y, z)                        - heliocentric position in parsecs
 """
 
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset
 import json
 import time
+import math
 import os
 import glob
 
@@ -21,17 +20,45 @@ import glob
 
 DEVICE      = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE  = 10240
-EPOCHS      = 100
+EPOCHS      = 150
 LR          = 1e-3
-HIDDEN      = [256, 256, 256, 128]   # hidden layer widths
-VAL_DATA_PATH = "validation_data"
-TEST_DATA_PATH = "test_data"
-TRAINING_DATA_PATH   = "training_data"
-NORM_PATH   = "orbit_norm_2.json"   
-MODEL_PATH  = "orbit_mlp_2.pt"
+HIDDEN      = [256, 256, 256, 128]
+VAL_DATA_PATH = "validation_data_3"
+TEST_DATA_PATH = "test_data_3"
+TRAINING_DATA_PATH   = "training_data_3"
+NORM_PATH   = "orbit_norm_6.json"   
+MODEL_PATH  = "orbit_mlp_6.pt"
 
+TRAINING_DATA_FILTER = "/orbit_train_part00[01234]*.npy"
+# TRAINING_DATA_FILTER = "/orbit_train_part00[!01234]*.npy"
+# --Time feature ffmapping
+
+def fourier_time_features(t: np.ndarray, T: float = 0.23, n_harmonics: int = 4) -> np.ndarray:
+    """
+    Replace scalar time t with Fourier features.
+    
+    Args:
+        t:            (N,) array of times in Gyr
+        T:            base orbital period in Gyr
+        n_harmonics:  number of sin/cos pairs
+    
+    Returns:
+        (N, 2 * n_harmonics) array
+    """
+    features = []
+    for k in range(1, n_harmonics + 1):
+        features.append(np.sin(2 * np.pi * k * t / T))
+        features.append(np.cos(2 * np.pi * k * t / T))
+    return np.stack(features, axis=-1)
 
 # ─── Dataset ─────────────────────────────────────────────────────────────────
+
+def convert_features(X, t):
+    r0 = np.sqrt(X[:, 0]**2 + X[:, 1]**2) # r0 = x0^2 + y0^2
+    fourier = fourier_time_features(t)
+
+    X = np.concatenate([X, r0[:, None], fourier], axis=1)
+    return X
 
 class OrbitDataset(Dataset):
     """
@@ -39,19 +66,24 @@ class OrbitDataset(Dataset):
         columns 0-6:  x0, y0, z0, vx0, vy0, vz0, t   (inputs)
         columns 7-9:  x, y, z                          (outputs)
     All positions in parsecs, velocities in pc/Gyr, time in Gyr.
+
+    Transforms to 15 input features input for MLP:
+    Inputs: [x0, y0, z0, vx0, vy0, vz0, r0, sin1, cos1, sin2, cos2, sin3, cos3, sin4, cos4]
+    Outputs: [x,y,z]
     """
 
-    def __init__(self, folder_path: str, norm_stats):
-        files = sorted(glob.glob(folder_path + "/orbit_train_*.npy"))
+    def __init__(self, folder_path: str, norm_stats, data_file_filter="/orbit_train_*.npy"):
+        files = sorted(glob.glob(folder_path + data_file_filter))
         data  = np.concatenate([np.load(f) for f in files], axis=0)
 
-        X = data[:, :7].astype(np.float32)
+        X = data[:, :6].astype(np.float32)
         y = (data[:, 7:] - data[:, :3]).astype(np.float32)
+        t = data[:, 6].astype(np.float32)
 
-        # normalize inputs
+        X = convert_features(X, t)
+
+        # Normalize
         X = (X - norm_stats["X_mean"]) / norm_stats["X_std"]
-
-        # normalize outputs
         y = (y - norm_stats["y_mean"]) / norm_stats["y_std"]
 
         print("Inputs normalized, loading into torch.")
@@ -67,12 +99,43 @@ class OrbitDataset(Dataset):
 
 # ─── Normalization ────────────────────────────────────────────────────────────
 
-def compute_norm_stats(folder_paths: list, file_name=NORM_PATH) -> dict:
+def compute_norm_stats(X, y, file_name=NORM_PATH):
+
+    if os.path.exists(file_name):
+        return load_norm_stats(file_name)
+    
+    print("Computing norm stats..")
+
+    n = len(X)
+    
+    X_mean = X.sum(axis=0) / n
+    y_mean = y.sum(axis=0) / n
+
+    X_sq_sum = ((X - X_mean) ** 2).sum(axis=0)
+    y_sq_sum = ((y - y_mean) ** 2).sum(axis=0)
+
+    X_std = np.maximum(np.sqrt(X_sq_sum / n), 1e-8)
+    y_std = np.maximum(np.sqrt(y_sq_sum / n), 1e-8)
+
+    stats = {
+        "X_mean": X_mean.tolist(),
+        "X_std":  X_std.tolist(),
+        "y_mean": y_mean.tolist(),
+        "y_std":  y_std.tolist(),
+    }
+
+    with open(file_name, "w") as f:
+        json.dump(stats, f, indent=2)
+    print(f"Saved normalization stats to {file_name}")
+    return stats
+
+
+def compute_norm_stats_from_files(folder_paths: list, file_name=NORM_PATH) -> dict:
     """
     Compute mean and std for inputs and outputs from the full dataset.
     Save to JSON so inference can apply the same transform.
     """
-    
+
     if os.path.exists(file_name):
         return load_norm_stats(file_name)
     
@@ -84,16 +147,18 @@ def compute_norm_stats(folder_paths: list, file_name=NORM_PATH) -> dict:
     files.sort()
 
     n = 0
-    X_sum    = np.zeros(7, dtype=np.float64)
+    X_sum    = np.zeros(15, dtype=np.float64)
     y_sum    = np.zeros(3, dtype=np.float64)
-    X_sq_sum = np.zeros(7, dtype=np.float64)
+    X_sq_sum = np.zeros(15, dtype=np.float64)
     y_sq_sum = np.zeros(3, dtype=np.float64)
 
     for f in files:
         data  = np.load(f,)
-        X     = data[:, :7].astype(np.float64)
-        y     = (data[:, 7:] - data[:, :3]).astype(np.float64)
-        n    += len(X)
+        X = data[:, :6].astype(np.float32)
+        y = (data[:, 7:] - data[:, :3]).astype(np.float32)
+        t = data[:, 6].astype(np.float32)
+        X = convert_features(X, t)
+        n += len(X)
         X_sum += X.sum(axis=0)
         y_sum += y.sum(axis=0)
 
@@ -103,37 +168,15 @@ def compute_norm_stats(folder_paths: list, file_name=NORM_PATH) -> dict:
     # second pass for std
     for f in files:
         data  = np.load(f,)
-        X     = data[:, :7].astype(np.float64)
-        y     = (data[:, 7:] - data[:, :3]).astype(np.float64)
+        X = data[:, :6].astype(np.float32)
+        y = (data[:, 7:] - data[:, :3]).astype(np.float32)
+        t = data[:, 6].astype(np.float32)
+        X = convert_features(X, t)
         X_sq_sum += ((X - X_mean) ** 2).sum(axis=0)
         y_sq_sum += ((y - y_mean) ** 2).sum(axis=0)
 
     X_std = np.maximum(np.sqrt(X_sq_sum / n), 1e-8)
     y_std = np.maximum(np.sqrt(y_sq_sum / n), 1e-8)
-
-    # Welford's online algorithm
-    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
-    # X_mean = np.zeros(7, dtype=np.float64)
-    # X_M2   = np.zeros(7, dtype=np.float64)
-    # y_mean = np.zeros(3, dtype=np.float64)
-    # y_M2   = np.zeros(3, dtype=np.float64)
-    # for f in files:
-    #     data = np.load(f, mmap_mode="r")
-    #     X    = data[:, :7].astype(np.float64)
-    #     y    = (data[:, 7:] - data[:, :3]).astype(np.float64)
-
-    #     for row_X, row_y in zip(X, y):
-    #         n += 1
-    #         delta_X  = row_X - X_mean
-    #         X_mean  += delta_X / n
-    #         X_M2    += delta_X * (row_X - X_mean)
-
-    #         delta_y  = row_y - y_mean
-    #         y_mean  += delta_y / n
-    #         y_M2    += delta_y * (row_y - y_mean)
-
-    # X_std = np.maximum(np.sqrt(X_M2 / n), 1e-8)
-    # y_std = np.maximum(np.sqrt(y_M2 / n), 1e-8)
 
     stats = {
         "X_mean": X_mean.tolist(),
@@ -150,6 +193,8 @@ def compute_norm_stats(folder_paths: list, file_name=NORM_PATH) -> dict:
 
 
 def load_norm_stats(filepath: str) -> dict:
+    if not os.path.exists(filepath):
+        raise Exception(f"Couldn't find norm stats file at: {filepath}")
     with open(filepath) as f:
         raw = json.load(f)
     return {k: np.array(v, dtype=np.float32) for k, v in raw.items()}
@@ -160,17 +205,17 @@ def load_norm_stats(filepath: str) -> dict:
 class OrbitMLP(nn.Module):
     """
     Multi-layer perceptron for orbit prediction.
-    7 inputs → hidden layers → 3 outputs.
+    15 inputs → hidden layers → 3 outputs.
     """
 
     def __init__(self, hidden_sizes: list = HIDDEN):
         super().__init__()
 
         layers = []
-        in_size = 7
+        in_size = 15
         for h in hidden_sizes:
             layers.append(nn.Linear(in_size, h))
-            layers.append(nn.ReLU())
+            layers.append(nn.SiLU())
             in_size = h
         layers.append(nn.Linear(in_size, 3))
 
@@ -238,54 +283,26 @@ def evaluate(model, loader, loss_fn) -> float:
 
     return total_loss / len(loader)
 
+def evaluate_on_gpu(model, X, y, loss_fn):
+    model.eval()
+    total_loss = 0.0
+
+    with torch.no_grad():
+        for i in range(0, len(X), BATCH_SIZE):
+            X_batch = X[i:i + BATCH_SIZE]
+            y_batch = y[i:i + BATCH_SIZE]
+
+            predictions = model(X_batch)
+            total_loss += loss_fn(predictions, y_batch).item()
+    
+    return total_loss / math.ceil(len(X) / BATCH_SIZE)
 
 # ─── Loss in parsecs ─────────────────────────────────────────────────────────
 
 def loss_to_parsecs(mse_normalized: float, norm_stats: dict) -> float:
-    """
-    Convert normalized MSE back to parsecs so loss is interpretable.
-    MSE is computed on normalized outputs — undo the std scaling.
-    """
     y_std = norm_stats["y_std"]
-    # average std across x, y, z dimensions
     avg_std = float(np.mean(y_std))
-    # MSE in normalized space = MSE_parsecs / std²
-    # so MSE_parsecs = MSE_normalized * std²
-    rmse_parsecs = np.sqrt(mse_normalized) * avg_std
-    return rmse_parsecs
-
-def rmse_parsecs(model, loader, norm_stats):
-    """
-    Compute RMSE directly in parsecs using denormalized predictions.
-    """
-    model.eval()
-
-    y_std = torch.tensor(norm_stats["y_std"], device=DEVICE)
-    y_mean = torch.tensor(norm_stats["y_mean"], device=DEVICE)
-
-    total_sq_error = 0.0
-    n = 0
-
-    with torch.no_grad():
-        for X_batch, y_batch in loader:
-            X_batch = X_batch.to(DEVICE)
-            y_batch = y_batch.to(DEVICE)
-
-            pred_norm = model(X_batch)
-
-            # denormalize prediction
-            pred = pred_norm * y_std + y_mean
-
-            # error in parsecs (displacement space)
-            err = pred - y_batch
-
-            total_sq_error += (err ** 2).sum().item()
-            n += err.numel()
-
-    mse = total_sq_error / n
-    rmse = np.sqrt(mse)
-    return mse, rmse
-
+    return np.sqrt(mse_normalized) * avg_std
 
 # ─── Inference ───────────────────────────────────────────────────────────────
 
@@ -301,6 +318,13 @@ def load_model(model_path: str = MODEL_PATH, norm_path: str = NORM_PATH):
     model.eval()
     return model, norm_stats
 
+def load_checkpoint(model, optimizer, scheduler, model_path: str = MODEL_PATH):
+    """Resume training — restores optimizer and scheduler state."""
+    checkpoint = torch.load(model_path, map_location=DEVICE)
+    model.load_state_dict(checkpoint["model_state"])
+    optimizer.load_state_dict(checkpoint["optimizer_state"])
+    scheduler.load_state_dict(checkpoint["scheduler_state"])
+    return checkpoint.get("best_val_loss", float("inf"))
 
 def predict(model, norm_stats: dict, x0, y0, z0, vx0, vy0, vz0, t) -> tuple:
     """
@@ -315,9 +339,11 @@ def predict(model, norm_stats: dict, x0, y0, z0, vx0, vy0, vz0, t) -> tuple:
         (x, y, z) heliocentric position in parsecs — numpy arrays
     """
     start = time.time()
-    
-    X = np.array([[x0, y0, z0, vx0, vy0, vz0, t]], dtype=np.float32)
-    X = (X - norm_stats["X_mean"]) / norm_stats["X_std"]
+
+    r0 = np.sqrt(x0**2 + y0**2)
+    fourier = fourier_time_features(np.array([t]))  # (1, 8)
+    X = np.array([[x0, y0, z0, vx0, vy0, vz0]])
+    X = np.concatenate([X, [[r0]], fourier], axis=1)  # (1, 15)
 
     X_tensor = torch.from_numpy(X).to(DEVICE)
     print(f"Data sent to gpu, {time.time() - start}")
@@ -335,12 +361,15 @@ def predict_batch(model, norm_stats: dict, inputs: np.ndarray) -> np.ndarray:
     Batch inference for N stars.
 
     Args:
-        inputs: (N, 7) array of [x0, y0, z0, vx0, vy0, vz0, t]
+        inputs: (N, 15)
 
     Returns:
         (N, 3) array of [x, y, z] in parsecs
     """
-    X = inputs.astype(np.float32)
+    r0 = np.sqrt(inputs[:, 0]**2 + inputs[:, 1]**2)
+    fourier = fourier_time_features(inputs[:, 6])  # (N, 8)
+    X = np.concatenate([inputs[:, :6], r0[:, None], fourier], axis=1)  # (N, 15)
+
     X = (X - norm_stats["X_mean"]) / norm_stats["X_std"]
     X_tensor = torch.from_numpy(X).to(DEVICE)
 
@@ -354,46 +383,69 @@ def predict_batch(model, norm_stats: dict, inputs: np.ndarray) -> np.ndarray:
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main():
-    print(f"Device: {DEVICE}")
+    print(f"{DEVICE=}")
+    print(f"{BATCH_SIZE=}")
+    print(f"{EPOCHS=}")
+    print(f"{LR=}")
+    print(f"{HIDDEN=}")
+    print(f"{VAL_DATA_PATH=}")
+    print(f"{TEST_DATA_PATH=}")
+    print(f"{TRAINING_DATA_PATH=}")
+    print(f"{NORM_PATH=}")
+    print(f"{MODEL_PATH=}")
+
 
     torch.set_float32_matmul_precision("high")
 
     # --- dataset ---
     print("Loading dataset...")
-    norm_stats = compute_norm_stats([TRAINING_DATA_PATH], NORM_PATH)
-    train_set = OrbitDataset(TRAINING_DATA_PATH, norm_stats)
+    norm_stats = load_norm_stats(NORM_PATH)
+    train_set = OrbitDataset(
+        TRAINING_DATA_PATH,
+        norm_stats,
+        TRAINING_DATA_FILTER
+    )
     test_set = OrbitDataset(TEST_DATA_PATH, norm_stats)
     val_set = OrbitDataset(VAL_DATA_PATH, norm_stats)
 
-
+    # Necessary if datasets are too large for gpu vram
     # train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,  num_workers=12, pin_memory=True)
-    val_loader   = DataLoader(val_set,   batch_size=BATCH_SIZE, shuffle=False, num_workers=12, pin_memory=True)
-    test_loader  = DataLoader(test_set,  batch_size=BATCH_SIZE, shuffle=False, num_workers=12, pin_memory=True)
+    # val_loader   = DataLoader(val_set,   batch_size=BATCH_SIZE, shuffle=False, num_workers=12, pin_memory=True)
+    # test_loader  = DataLoader(test_set,  batch_size=BATCH_SIZE, shuffle=False, num_workers=12, pin_memory=True)
 
     # move full dataset to GPU
     train_X = train_set.X.to(DEVICE)
     train_y = train_set.y.to(DEVICE)
 
-    # val_X = val_set.X.to(DEVICE)
-    # val_y = val_set.y.to(DEVICE)
+    val_X = val_set.X.to(DEVICE)
+    val_y = val_set.y.to(DEVICE)
 
-    # test_X = test_set.X.to(DEVICE)
-    # test_y = test_set.y.to(DEVICE)
+    test_X = test_set.X.to(DEVICE)
+    test_y = test_set.y.to(DEVICE)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    # learning rate scheduler — halves LR if val loss stops improving for 5 epochs
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=15, min_lr=1e-6
+    )
 
     # --- model ---
-    model = OrbitMLP(hidden_sizes=HIDDEN).to(DEVICE)
-    model = torch.compile(model)
+    if os.path.exists(MODEL_PATH):
+        print("Loading Pre-trained model")
+        model, _ = load_model()
+        print(load_checkpoint(
+            model,
+            optimizer,
+            scheduler
+        ))
+    else:
+        model = OrbitMLP(hidden_sizes=HIDDEN).to(DEVICE)
+        model = torch.compile(model)
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Model parameters: {total_params:,}")
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    loss_fn   = nn.MSELoss()
-
-    # learning rate scheduler — halves LR if val loss stops improving for 5 epochs
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=5
-    )
+    loss_fn   = nn.MSELoss()    
 
     # --- training loop ---
     best_val_loss = float("inf")
@@ -403,12 +455,12 @@ def main():
         t0 = time.time()
 
         train_loss = train_full_gpu(model, train_X, train_y, optimizer, loss_fn)
-        val_loss = evaluate(model, val_loader, loss_fn)
+        val_loss = evaluate_on_gpu(model, val_X, val_y, loss_fn)
 
         scheduler.step(val_loss)
 
-        # train_pc = loss_to_parsecs(train_loss, norm_stats)
-        # val_pc   = loss_to_parsecs(val_loss,   norm_stats)
+        train_pc = loss_to_parsecs(train_loss, norm_stats)
+        val_pc   = loss_to_parsecs(val_loss,   norm_stats)
 
         elapsed = time.time() - t0
 
@@ -417,6 +469,7 @@ def main():
             f"train_loss={train_loss:.6f}  "
             f"val_loss={val_loss:.6f}  "
             f"lr={optimizer.param_groups[0]['lr']:.2e}  "
+            f"{train_pc=}, {val_pc=}  "
             f"time={elapsed:.1f}s"
         )
 
@@ -425,23 +478,21 @@ def main():
             best_val_loss = val_loss
             torch.save({
                 "model_state": model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "scheduler_state": scheduler.state_dict(),
                 "hidden_sizes": HIDDEN,
                 "norm_path": NORM_PATH,
             }, MODEL_PATH)
 
     # --- final test evaluation ---
     print("\nLoading best model for test evaluation...")
-    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
-    model.load_state_dict(checkpoint["model_state"])
+    model,_ = load_model(MODEL_PATH, NORM_PATH)
 
-    # test_loss = evaluate(model, test_loader, loss_fn)
-    # test_pc   = loss_to_parsecs(test_loss, norm_stats)
-    test_mse, test_rmse = rmse_parsecs(model, test_loader, norm_stats)
+    test_loss = evaluate_on_gpu(model, test_X, test_y, loss_fn)
+    test_pc   = loss_to_parsecs(test_loss, norm_stats)
 
-
-    print(f"\nTest MSE: {test_mse:.6f}  RMSE: {test_rmse:.4f} parsecs")
+    print(f"{test_pc=} parsecs")
     print(f"Target:    0.25 pc² MSE  (0.50 pc RMSE)")
-    print(f"{'✓ Target hit' if test_rmse <= 0.5 else '✗ Target not hit — consider more data or larger network'}")
 
 
 if __name__ == "__main__":
