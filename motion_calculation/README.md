@@ -39,24 +39,24 @@ Far from the perfect result but still lots of things to try.
 
 
 Iterations
-1:
+#### 1:
 - 1 Million stars * 100 timesteps, 7 features
 ~ 75 parsecs err
 
-2:
+#### 2:
 - 2 Million stars * 100 timesteps, 7 features
 ~ 60 parsecs err
 
-3:
+#### 3:
 - Swapped from relu to silu
 ~ 21 parsecs error
 
-4:
+#### 4:
 - Added r0 and time fourier features
 - Trained on 1/2 Training data (Had issues with memory)
 ~59 parsecs error
 
-5:
+#### 5:
 - Trained on 3/4 of training_data + training_data_2
 ~ 40 parsecs error
 
@@ -64,37 +64,34 @@ Stopped early because it started plateauing at 40.
 (also forgot to swap the learning rate when swapping data sets)
     - no longer a problem because I added load_checkpoint
 
-6: (training_data_3, orbit_norm_6)
+#### 6: (training_data_3, orbit_norm_6)
 - training_data_3, Reduced Input Time space from -3,3 to -1,1
 - Epochs, increased from 100 to 150
 - scheduler changes, min_lr = 1e-6, patience=15
 ~16 parsecs error, after first half of data
 ~10 parsecs error, after second half of data
-Time taken(model_test.py): 1.3s
+Time taken(model_test.py), 1.3s
 
 Still room to improve here based on remaining learning rate.
 
-6 continued:
+#### 6 continued:
 HIDDEN=[256, 256, 256, 128] (No change from before)
 - Using mixed precision brought epoch time from ~11 to ~8 seconds
 ~10 parsecs, after first half
     - maybe patience is too high?
 ~10 parsecs, after second half
 
-- patience is too high.
 
-
-7: (training_data_3, orbit_norm_6)
-- Changed hidden layers:
-From [256, 256, 256, 128] to [512, 512, 256, 256, 128]
-
+#### 7: (training_data_3, orbit_norm_6)
+- Changed hidden layers, From [256, 256, 256, 128] to [512, 512, 256, 256, 128]
+- patience=15
 - Significantly slower by ~2x, to train and to test
 ~10 parsecs error, after first half of data
 ~ 5.6 parsecs error, after second half of data
-Time taken(model_test.py): 2.15
+Time taken(model_test.py), 2.15
 
 
-8: (training_data_3, orbit_norm_6)
+#### 8: (training_data_3, orbit_norm_6)
 - Optimizer Patience reduced to 10
 - HIDDEN updated to [256] * 4
 - Switch to **Residual MLP**
@@ -103,20 +100,20 @@ Time taken(model_test.py): 2.15
 ~16 parsecs error, after second half of data
 
 
-9: (training_data_3, orbit_norm_6)
+#### 9: (training_data_3, orbit_norm_6)
 - Back to **Plain MLP**
 - Hidden = [1024, 1024, 512, 256]
 ~20 after first half of data
 ~15 parsecs error, after second half of data
 
 
-10: (training_data_3, orbit_norm_6)
+#### 10: (training_data_3, orbit_norm_6)
 - Repeat 9, with patience = 15
     - Patience sanity check
 ~30 parsecs error after first half of data
 
 
-11: (training_data_3, orbit_norm_6)
+#### 11: (training_data_3, orbit_norm_6)
 - Hidden = [1024, 1024, 512, 256, 128]
 - Patience = 10
 ~26 parsecs error, after first half of data
@@ -133,16 +130,41 @@ Epoch 98/150  train_loss=1.01e-05  val_loss=1.01e-05  lr=2.50e-04  train_pc=np.f
 Epoch 99/150  train_loss=9.87e-06  val_loss=9.85e-06  lr=2.50e-04  train_pc=np.float64(35.67020919499895), val_pc=np.float64(35.627068512536944)  time=31.3s
 ```
 
-12: (training_data_3, orbit_norm_6)
-- Add gradient clipping to manage instability
-- Patience = 25
+#### 12: (training_data_3, orbit_norm_6)
+- Add gradient clipping to manage loss instability
+- Swap to cosine annealing scheduler
 - Epochs = 200
 
-13: todo (training_data_3, orbit_norm_6)
+~21 parsecs error, after first half
+- issue with scheduler learning rate on continue
+    - need to tune first and second half to different mins
+
+~30seconds per epoch
+
+#### 13: (training_data_3, orbit_norm_6)
 - [512, 512, 256, 256, 128] (from iteration 7)
+- Back to plateau scheduler
+- Patience = 20
+- Epochs = 200
+
+~11seconds per epoch
+~17 parsecs error, after first half
+~13 parsecs error, after second half (lr=3.13e-05)
+
+3rd pass
+- patience = 15
+- 90 epochs on first half of data
+~12 parsecs error
+
+---
 
 
-14: todo (training_data_4, orbit_norm_13)
+#### 14: todo
+- Same as 13 but with cosine annealing scheduler
+
+
+
+#### x: todo (training_data_4, orbit_norm_13)
 - Generate new training set
     - Add larger test and validation sets (200000 stars instead of 100000)
 

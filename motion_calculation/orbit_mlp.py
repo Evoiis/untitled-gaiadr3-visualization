@@ -22,21 +22,21 @@ from collections import Counter
 # ─── Constants ───────────────────────────────────────────────────────────────
 
 DEVICE      = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE  = 200000
+BATCH_SIZE  = 100000
 
 # TODO: move to a config file
-EPOCHS      = 200
+EPOCHS      = 150
 LR          = 1e-3
-HIDDEN = [1024, 1024, 512, 256, 128]
-OPTIMIZER_PATIENCE = 25
+HIDDEN = [512, 512, 256, 256, 128]
+SCHEDULER_PATIENCE = 15
 VAL_DATA_PATH = "validation_data_3"
 TEST_DATA_PATH = "test_data_3"
 TRAINING_DATA_PATH   = "training_data_3"
 NORM_PATH   = "orbit_norm_6.json"
-MODEL_PATH  = "orbit_mlp_12.pt"
+MODEL_PATH  = "orbit_mlp_7.1.pt"
 
-# TRAINING_DATA_FILTER = "/orbit_train_part00[01234]*.npy"
-TRAINING_DATA_FILTER = "/orbit_train_part00[!01234]*.npy"
+TRAINING_DATA_FILTER = "/orbit_train_part00[01234]*.npy"
+# TRAINING_DATA_FILTER = "/orbit_train_part00[!01234]*.npy"
 # --Time feature ffmapping
 
 def fourier_time_features(t: np.ndarray, T: float = 0.23, n_harmonics: int = 4) -> np.ndarray:
@@ -470,20 +470,32 @@ def main():
         model, _ = load_model()
         optimizer = torch.optim.Adam(model.parameters(), lr=LR)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=OPTIMIZER_PATIENCE, min_lr=1e-6
+            optimizer, mode="min", factor=0.5, patience=SCHEDULER_PATIENCE, min_lr=1e-6
         )
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer, T_max=EPOCHS, eta_min=1e-6
+        # )
         best_val_loss = load_checkpoint(
             model,
             optimizer,
             scheduler
         )
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        #     optimizer, T_0=50, T_mult=2, eta_min=1e-6
+        # )
+        # for group in optimizer.param_groups:
+        #     group['lr'] = 1e-3
+
     else:
         model = OrbitMLP(hidden_sizes=HIDDEN).to(DEVICE)
         model = torch.compile(model)
         optimizer = torch.optim.Adam(model.parameters(), lr=LR)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=OPTIMIZER_PATIENCE, min_lr=1e-6
+            optimizer, mode="min", factor=0.5, patience=SCHEDULER_PATIENCE, min_lr=1e-6
         )
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer, T_max=EPOCHS, eta_min=1e-6
+        # )
         best_val_loss = float("inf")
 
     total_params = sum(p.numel() for p in model.parameters())
@@ -501,6 +513,7 @@ def main():
         val_loss = evaluate_on_gpu(model, val_X, val_y, loss_fn)
 
         scheduler.step(val_loss)
+        # scheduler.step()
 
         train_pc = loss_to_parsecs(train_loss, norm_stats)
         val_pc   = loss_to_parsecs(val_loss,   norm_stats)

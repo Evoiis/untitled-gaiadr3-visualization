@@ -1,0 +1,14 @@
+model_name: orbit_mlp_X.pt
+norm_path:
+val_data_path:
+training_data_path:
+hidden_layers: []
+# optimizer:
+
+pass-1:
+    training_data_filter: /orbit_train_part00[!01234]*.npy
+    initial_learning_rate: 1e-3
+    scheduler: # [plateau, cosanneal]
+    
+
+
