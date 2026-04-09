@@ -1,0 +1,29 @@
+model_name: orbit_mlp_7.3.pt
+
+norm_path: "orbit_norm_6.json"
+val_data_path: "validation_data_3"
+test_data_path: "test_data_3"
+training_data_path: "training_data_3"
+
+hidden_layers: [512, 512, 256, 256, 128]
+epochs: 5
+batch_size: 102400
+
+use_half_precision: True # [True,False]
+use_dataloader: False # [True,False]
+
+optimizer: adam # [adam, adamW]
+
+runs:
+  1:
+    training_data_filter: /orbit_train_*.npy
+    min_learning_rate: 0.000001
+    scheduler: plateau # [plateau, cosanneal]
+    patience: 15
+    
+  # 2:
+  #   training_data_filter: /orbit_train_part00[!01234]*.npy
+  #   min_learning_rate: 0.000001
+  #   scheduler: plateau # [plateau, cosanneal]
+  #   patience: 15
+

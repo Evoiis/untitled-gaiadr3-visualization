@@ -118,17 +118,6 @@ Time taken(model_test.py), 2.15
 - Patience = 10
 ~26 parsecs error, after first half of data
 
-- large jumps in loss when learning rate halves
-```
-Epoch 92/150  train_loss=3.10e-05  val_loss=2.88e-05  lr=5.00e-04  train_pc=np.float64(63.255904091693274), val_pc=np.float64(60.959115343239446)  time=32.0s
-Epoch 93/150  train_loss=3.50e-05  val_loss=1.52e-04  lr=5.00e-04  train_pc=np.float64(67.16801653764989), val_pc=np.float64(140.0430933581815)  time=31.4s
-Epoch 94/150  train_loss=2.85e-05  val_loss=3.58e-05  lr=5.00e-04  train_pc=np.float64(60.56533757900817), val_pc=np.float64(67.97838762037871)  time=32.2s
-Epoch 95/150  train_loss=3.10e-05  val_loss=3.08e-05  lr=5.00e-04  train_pc=np.float64(63.16531131179766), val_pc=np.float64(62.97363789392714)  time=31.7s
-Epoch 96/150  train_loss=3.20e-05  val_loss=9.16e-05  lr=2.50e-04  train_pc=np.float64(64.24828934771149), val_pc=np.float64(108.641003260303)  time=31.6s
-Epoch 97/150  train_loss=1.21e-05  val_loss=1.03e-05  lr=2.50e-04  train_pc=np.float64(39.48829583949843), val_pc=np.float64(36.49230998602964)  time=31.3s
-Epoch 98/150  train_loss=1.01e-05  val_loss=1.01e-05  lr=2.50e-04  train_pc=np.float64(36.11891212004395), val_pc=np.float64(36.020122083804154)  time=31.6s
-Epoch 99/150  train_loss=9.87e-06  val_loss=9.85e-06  lr=2.50e-04  train_pc=np.float64(35.67020919499895), val_pc=np.float64(35.627068512536944)  time=31.3s
-```
 
 #### 12: (training_data_3, orbit_norm_6)
 - Add gradient clipping to manage loss instability
@@ -138,6 +127,7 @@ Epoch 99/150  train_loss=9.87e-06  val_loss=9.85e-06  lr=2.50e-04  train_pc=np.f
 ~21 parsecs error, after first half
 - issue with scheduler learning rate on continue
     - need to tune first and second half to different mins
+    - or add override
 
 ~30seconds per epoch
 
@@ -156,12 +146,22 @@ Epoch 99/150  train_loss=9.87e-06  val_loss=9.85e-06  lr=2.50e-04  train_pc=np.f
 - 90 epochs on first half of data
 ~12 parsecs error
 
----
 
+#### 7.1:
+- Attempt to replicate iteration 7
+- Copied all settings from iteration 7 but with current code.
+    - Epoch = 150, patience = 15, H = [512, 512, 256, 256, 128]
 
-#### 14: todo
-- Same as 13 but with cosine annealing scheduler
+~28 parsecs error, after first half
+~19 parsecs error, after second half
 
+- Definitely feels like I tweaked something wrong in the iterations between now and 7
+- Need to build config input and log to file before continuing
+
+#### 7.2:
+- 7.1 but with cosannealing scheduler
+~27 parsecs error, after first half
+~20 parsecs error, after second half
 
 
 #### x: todo (training_data_4, orbit_norm_13)
