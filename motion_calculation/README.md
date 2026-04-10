@@ -164,6 +164,22 @@ Time taken(model_test.py), 2.15
 ~20 parsecs error, after second half
 
 
+#### 7.3:
+- No dataset split
+~12 parsecs error
+
+#### 7.4:
+- AdamW
+~ 12 parsecs error
+
+#### 7.5:
+- No gradient clipping
+~ 10.5 parsecs error
+
+#### 7.6:
+- 7.5 but cosanneal
+~10 parsecs error
+
 #### x: todo (training_data_4, orbit_norm_13)
 - Generate new training set
     - Add larger test and validation sets (200000 stars instead of 100000)

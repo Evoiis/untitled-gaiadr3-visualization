@@ -12,6 +12,7 @@ import torch.nn as nn
 
 from collections import Counter
 from pprint import pprint
+from file_logger import FileLogger
 import numpy as np
 import json
 import time
@@ -255,7 +256,7 @@ class OrbitResidualMLP(nn.Module):
 
 # --- Training ---
 
-def train_with_dataloader(model, loader, optimizer, loss_fn, scaler) -> float:
+def train_with_dataloader(model, loader, optimizer, loss_fn, scaler, config) -> float:
     model.train()
     total_loss = 0.0
 
@@ -268,9 +269,10 @@ def train_with_dataloader(model, loader, optimizer, loss_fn, scaler) -> float:
             predictions = model(X_batch)
             loss = loss_fn(predictions, y_batch)
 
-        scaler.scale(loss).backward()       
-        scaler.unscale_(optimizer)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        scaler.scale(loss).backward()
+        if config["use_gradient_clipping"]:
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
         scaler.step(optimizer)
         scaler.update()
 
@@ -278,17 +280,17 @@ def train_with_dataloader(model, loader, optimizer, loss_fn, scaler) -> float:
     
     return total_loss.item() / len(loader)
 
-def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, scaler, batch_size, data_stored_as_half):
+def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, scaler, config):
     model.train()
     total_loss = 0.0
     n_batches = 0
 
     perm = torch.randperm(len(X), device=DEVICE)
 
-    for i in range(0, len(X), batch_size):
-        idx = perm[i:i+batch_size]
+    for i in range(0, len(X), config["batch_size"]):
+        idx = perm[i:i+config["batch_size"]]
 
-        if data_stored_as_half:
+        if config["use_half_precision"]:
             X_batch = X[idx].float()
             y_batch = y[idx].float()
         else:
@@ -301,12 +303,12 @@ def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, scaler, batc
             predictions = model(X_batch)
             loss = loss_fn(predictions, y_batch)
 
-        scaler.scale(loss).backward()       
-        scaler.unscale_(optimizer)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        scaler.scale(loss).backward()
+        if config["use_gradient_clipping"]:
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
         scaler.step(optimizer)
         scaler.update()
-
 
         total_loss += loss.detach()
         n_batches += 1
@@ -538,10 +540,18 @@ def run_training_run(config):
         t0 = time.time()
 
         if config["use_dataloader"]:
-            train_loss = train_with_dataloader(model, train_loader, optimizer, loss_fn, scaler)
+            train_loss = train_with_dataloader(model, train_loader, optimizer, loss_fn, scaler, config)
             val_loss = evaluate_with_dataloader(model, val_loader, loss_fn)
         else:
-            train_loss = train_with_full_dataset_on_gpu(model, train_X, train_y, optimizer, loss_fn, scaler, config["batch_size"], config["use_half_precision"])
+            train_loss = train_with_full_dataset_on_gpu(
+                model,
+                train_X,
+                train_y,
+                optimizer,
+                loss_fn,
+                scaler,
+                config
+            )
             val_loss = evaluate_with_full_dataset_on_gpu(model, val_X, val_y, loss_fn, config["batch_size"])
 
         if config["scheduler"] == "plateau":

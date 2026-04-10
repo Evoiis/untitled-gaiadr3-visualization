@@ -1,4 +1,6 @@
-model_name: orbit_mlp_7.3.pt
+model_name: orbit_mlp_7.6.pt
+
+# 7.5 with cosanneal
 
 norm_path: "orbit_norm_6.json"
 val_data_path: "validation_data_3"
@@ -6,12 +8,12 @@ test_data_path: "test_data_3"
 training_data_path: "training_data_3"
 
 hidden_layers: [512, 512, 256, 256, 128]
-epochs: 150
+epochs: 300
 batch_size: 102400
 
 use_half_precision: True # [True,False]
 use_dataloader: False # [True,False]
-use_gradient_clipping: True
+use_gradient_clipping: False
 
 grad_clip_max_norm: 0.1
 optimizer: adam # [adam, adamW]
@@ -21,9 +23,4 @@ runs:
     training_data_filter: /orbit_train_*.npy
     min_learning_rate: 0.000001
     start_learning_rate: 0.001
-    scheduler: plateau # [plateau, cosanneal]
-    patience: 15
-  2:
-    training_data_filter: /orbit_train_*.npy
-    scheduler: plateau # [plateau, cosanneal]
-    patience: 15
+    scheduler: cosanneal # [plateau, cosanneal]

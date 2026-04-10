@@ -8,7 +8,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TEST_DATA_PATH = "test_data_3"
 MODEL_PATH = "./orbit_mlp_9.pt"
 NORM_PATH  = "./orbit_norm_6.json"
-BATCH_SIZE = 500_000
+BATCH_SIZE = 102400
 
 print("\nLoading model for test evaluation...")
 
