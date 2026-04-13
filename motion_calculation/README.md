@@ -211,9 +211,12 @@ Time taken(model_test.py), 2.15
 - Residual model
 - Very slow and very unstable
 
-#### 17: (Training_data_5) (uniform dist_kpc dataset)
+#### 17: (Training_data_5) (close far uniform dist_kpc dataset)
 ~10.9 (test_data_5) parsecs
 ~9.6 (test_data_3) parsecs
+
+#### 20: (Training_data_12) (flat dist_kpc sampling)
+
 
 #### x:
 - smaller dataset

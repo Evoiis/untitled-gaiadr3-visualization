@@ -37,7 +37,7 @@ def integrate_orbit(orbit: Orbit, time_range):
 
     return orbit.helioX(time_range), orbit.helioY(time_range), orbit.helioZ(time_range)
 
-def generate_training_set(n_stars, dist_sampling_mode: str, n_timesteps=101):
+def generate_training_set(n_stars, dist_sampling_mode: str, n_timesteps=100):
     """
     Output
     x0, y0, z0, vx0, vy0, vz0, t_col, x_out, y_out, z_out
@@ -45,15 +45,15 @@ def generate_training_set(n_stars, dist_sampling_mode: str, n_timesteps=101):
     x_out, y_out, z_out: heliocentric
     """
 
-    if n_timesteps % 2 == 0:
-        n_timesteps += 1
-
     start = time.time()
     ra               = np.random.uniform(0, 360, n_stars)
     dec              = np.degrees(np.arcsin(np.random.uniform(-1, 1, n_stars)))
     radial_velocity  = np.random.uniform(-500, 500, n_stars)
-    times            = np.linspace(-1, 1, n_timesteps)
-        
+
+    times = np.linspace(-1, 1, n_timesteps)
+    times = np.append(times, 0)
+    times = np.sort(times)
+
     if dist_sampling_mode == "full_log":
         # full log uniform sampling
         parallax = np.exp(np.random.uniform(np.log(0.275), np.log(800), n_stars))
@@ -122,7 +122,7 @@ def write_data(n_stars, batch_size, data_folder):
         np.save(f"{data_folder}/orbit_train_part{i:04d}.npy", data)
 
 def main():
-    data_set_name = "9"
+    data_set_name = "12"
     n_stars = 1000000
     batch_size = 10000
     write_data(n_stars, batch_size, "training_data_" + data_set_name)

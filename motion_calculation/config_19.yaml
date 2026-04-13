@@ -1,9 +1,9 @@
 model_name: orbit_mlp_19.pt
 
-norm_path: "orbit_norm_data_9.json"
-val_data_path: "validation_data_9"
-test_data_path: "test_data_9"
-training_data_path: "training_data_9"
+norm_path: "orbit_norm_data_11.json"
+val_data_path: "validation_data_11"
+test_data_path: "test_data_11"
+training_data_path: "training_data_11"
 
 hidden_layers: [512, 512, 256, 256, 128]
 epochs: 150
@@ -19,7 +19,7 @@ optimizer: adam # [adam, adamW]
 runs:
   1:
     training_data_filter: /orbit_train_*.npy
-    start_learning_rate: 0.001
     min_learning_rate: 0.000001
+    start_learning_rate: 0.001
     scheduler: plateau
     patience: 15

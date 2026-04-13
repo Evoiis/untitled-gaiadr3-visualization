@@ -604,7 +604,6 @@ def run_training_run(config):
             f"time={elapsed:.1f}s"
         )
 
-        # save best model
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save({

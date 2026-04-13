@@ -4,7 +4,7 @@ flogger.set_write_to_file(False)
 
 compute_norm_stats_from_files(
     [
-        "training_data_9",
+        "training_data_12",
     ],
-    "orbit_norm_data_9.json"
+    "orbit_norm_data_12.json"
 )
