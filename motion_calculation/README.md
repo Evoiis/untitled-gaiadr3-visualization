@@ -216,9 +216,17 @@ Time taken(model_test.py), 2.15
 ~9.6 (test_data_3) parsecs
 
 #### 20: (Training_data_12) (flat dist_kpc sampling)
-- 590 epochs, mix of huber added at the end
+- 150 epochs
+~15.698435437964946 parsecs error
 
+- 300 epochs
+~10.16 parsecs error
 ~7.5 (test_data_3) parsecs error
+
+- 140 more epochs cosannealhuber
+- 150 more epochs huber plateau, reset starting lr to 0.0001
+~5.9 parsecs error
+
 
 #### 21: (Training data 12)
 - Added Layernorms in after each hidden layer, before silu
@@ -226,6 +234,28 @@ Time taken(model_test.py), 2.15
 - H-layer change: [1024, 1024, 512, 512, 256]
 - batch size reduced to 16384
 - swapped from fp16 to bfloat16
+
+~15.5 (test_data_3) parsecs error
+
+#### 22: (Training data 12)
+- layernorm off, hlayers back to 512,512,256,256,128
+- mse loss
+- batch size reduced to 16384
+- using bfloat16
+
+- After 300 epochs:
+~12.8 (test_data_3) parsecs error
+
+#### 23:
+- I22 with batch size reduced to 8192
+- 150 epochs: ~15.507936918409243 parsecs error
+- 300 epochs: 14.924628728195806 parsecs error
+
+#### 24:
+- I23 with batch size 102400
+- 150 epochs: ~27.889 parsecs error
+
+
 
 #### x:
 - BF16, smaller memory footprint, same precision as fp32

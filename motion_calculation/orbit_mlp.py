@@ -218,41 +218,121 @@ class OrbitMLP(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-    
-# --- Residual MLP ---
 
-class ResidualBlock(nn.Module):
-    def __init__(self, size):
+
+# --- Residual MLP ---
+class ResBlock(nn.Module):
+    def __init__(self, in_size, out_size):
         super().__init__()
-        self.block = nn.Sequential(
-            nn.Linear(size, size),
+        self.net = nn.Sequential(
+            nn.LayerNorm(in_size),
+            nn.Linear(in_size, out_size),
             nn.SiLU(),
-            nn.LayerNorm(size),
-            nn.Linear(size, size),
+            nn.LayerNorm(out_size),
+            nn.Linear(out_size, out_size),
             nn.SiLU(),
-            nn.LayerNorm(size)
         )
+        # Only project if dimensions differ
+        self.proj = nn.Linear(in_size, out_size, bias=False) if in_size != out_size else nn.Identity()
 
     def forward(self, x):
-        # The skip connection: x + f(x)
-        return x + self.block(x)
+        return self.proj(x) + self.net(x)
+
 
 class OrbitResidualMLP(nn.Module):
-    def __init__(self, hidden_size: int, num_blocks: int):
+    def __init__(self, hidden_sizes: list, config):
         super().__init__()
-        self.input_layer = nn.Linear(15, hidden_size)
-        
-        # Stack multiple residual blocks
-        self.res_blocks = nn.Sequential(
-            *[ResidualBlock(hidden_size) for _ in range(num_blocks)]
+
+        self.input_proj = nn.Sequential(
+            nn.Linear(15, hidden_sizes[0]),
+            nn.SiLU(),
         )
-        
-        self.output_layer = nn.Linear(hidden_size, 3)
+
+        blocks = []
+        for in_size, out_size in zip(hidden_sizes[:-1], hidden_sizes[1:]):
+            blocks.append(ResBlock(in_size, out_size))
+        blocks.append(ResBlock(hidden_sizes[-1], hidden_sizes[-1]))
+        self.blocks = nn.Sequential(*blocks)
+
+        self.output = nn.Linear(hidden_sizes[-1], 3)
 
     def forward(self, x):
-        x = torch.silu(self.input_layer(x))
-        x = self.res_blocks(x)
-        return self.output_layer(x)
+        x = self.input_proj(x)
+        x = self.blocks(x)
+        return self.output(x)
+
+# --- Fourier Feature MLP ---
+
+class FourierFeatures(nn.Module):
+    def __init__(self, in_dim, num_frequencies=64, sigma=1.0):
+        super().__init__()
+        # frozen random projection — not trained
+        B = torch.randn(in_dim, num_frequencies) * sigma
+        self.register_buffer('B', B)
+
+    def forward(self, x):
+        proj = x @ self.B  # (..., num_frequencies)
+        return torch.cat([torch.sin(proj), torch.cos(proj)], dim=-1)
+        # output dim = num_frequencies * 2
+
+class OrbitFFMLP(nn.Module):
+    def __init__(self, hidden_sizes: list, config):
+        super().__init__()
+        
+        num_frequencies = config.get("fourier_frequencies", 64)
+        sigma = config.get("fourier_sigma", 1.0)
+        self.fourier = FourierFeatures(15, num_frequencies=num_frequencies, sigma=sigma)
+        
+        layers = []
+        in_size = num_frequencies * 2
+        for h in hidden_sizes:
+            layers.append(nn.Linear(in_size, h))
+            if config.get("add_layer_norm", False):
+                layers.append(nn.LayerNorm(h))
+            layers.append(nn.SiLU())
+            in_size = h
+        layers.append(nn.Linear(in_size, 3))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.fourier(x)
+        return self.net(x)
+
+# --- SIREN MLP ---
+
+class SirenLayer(nn.Module):
+    def __init__(self, in_dim, out_dim, is_first=False, omega=30.0):
+        super().__init__()
+        self.omega = omega
+        self.linear = nn.Linear(in_dim, out_dim)
+        self._init_weights(in_dim, is_first)
+
+    def _init_weights(self, in_dim, is_first):
+        with torch.no_grad():
+            if is_first:
+                # first layer uses wider uniform
+                bound = 1.0 / in_dim
+            else:
+                bound = (6.0 / in_dim) ** 0.5 / self.omega
+            self.linear.weight.uniform_(-bound, bound)
+            if self.linear.bias is not None:
+                self.linear.bias.uniform_(-bound, bound)
+
+    def forward(self, x):
+        return torch.sin(self.omega * self.linear(x))
+
+
+class OrbitSiren(nn.Module):
+    def __init__(self, hidden_sizes: list, omega=30.0):
+        super().__init__()
+        layers = [SirenLayer(15, hidden_sizes[0], is_first=True, omega=omega)]
+        for in_size, out_size in zip(hidden_sizes[:-1], hidden_sizes[1:]):
+            layers.append(SirenLayer(in_size, out_size, omega=omega))
+        self.net = nn.Sequential(*layers)
+        self.output = nn.Linear(hidden_sizes[-1], 3)
+
+    def forward(self, x):
+        return self.output(self.net(x))
 
 # --- Training ---
 
@@ -344,27 +424,6 @@ def evaluate_with_full_dataset_on_gpu(model, X, y, loss_fn, batch_size):
 
 # --- Inference ---
 
-def load_model_from_file(config):
-    """Load trained model."""
-    torch.set_float32_matmul_precision("high")
-
-    checkpoint = torch.load(config["model_name"], map_location=DEVICE)
-
-    flogger.info(
-        f"Checkpoint loaded: {pformat(checkpoint["hidden_sizes"])}" +
-        f", {pformat(checkpoint["norm_path"])}"
-    )
-
-    if "use_residual_model" in config and config["use_residual_model"]:
-        model = OrbitResidualMLP(hidden_sizes=checkpoint["hidden_sizes"]).to(DEVICE)
-    else:
-        model = OrbitMLP(hidden_sizes=checkpoint["hidden_sizes"], config=config).to(DEVICE)
-
-    model = torch.compile(model)
-    model.load_state_dict(checkpoint["model_state"])
-    model.eval()
-    return model
-
 def load_checkpoint(model, optimizer, scheduler, model_path: str):
     """Resume training — restores optimizer and scheduler state."""
     checkpoint = torch.load(model_path, map_location=DEVICE)
@@ -387,10 +446,8 @@ def predict(model, norm_stats: dict, x0, y0, z0, vx0, vy0, vz0, t) -> tuple:
     """
     start = time.time()
 
-    r0 = np.sqrt(x0**2 + y0**2)
-    fourier = calc_time_fourier_features(np.array([t]))
-    X = np.array([[x0, y0, z0, vx0, vy0, vz0]])
-    X = np.concatenate([X, [[r0]], fourier], axis=1)
+    X = np.array([[x0, y0, z0, vx0, vy0, vz0]])    
+    X = add_features(X, np.array([t]))
     X = (X - norm_stats["X_mean"]) / norm_stats["X_std"]
 
     X_tensor = torch.from_numpy(X).to(DEVICE)
@@ -409,16 +466,13 @@ def predict_batch(model, norm_stats: dict, inputs: np.ndarray) -> np.ndarray:
     Batch inference for N stars.
 
     Args:
-        inputs: (N, 15)
+        inputs: (N, 7)
 
     Returns:
         (N, 3) array of [x, y, z] in parsecs
     """
 
-    r0 = np.sqrt(inputs[:, 0]**2 + inputs[:, 1]**2)
-    fourier = calc_time_fourier_features(inputs[:, 6])  # (N, 8)
-    X = np.concatenate([inputs[:, :6], r0[:, None], fourier], axis=1)  # (N, 15)
-
+    X = add_features(inputs[:, :6], inputs[:, 6])
     X = (X - norm_stats["X_mean"]) / norm_stats["X_std"]
     X_tensor = torch.from_numpy(X).to(DEVICE)
 
@@ -475,32 +529,7 @@ def load_dataloaders(config, train_set, val_set, test_set):
     
     return  train_loader, val_loader, test_loader
 
-def load_model(config):
-    flogger.info("Loading model")
-
-    best_val_loss = float("inf")
-
-    if os.path.exists(config["model_name"]):
-        flogger.info("Found existing model, loading from file.")
-        model = load_model_from_file(config)
-    else:
-        flogger.info("Creating a new model from scratch.")
-
-        if "use_residual_model" in config and config["use_residual_model"]:
-            model = OrbitResidualMLP(hidden_sizes=config["hidden_layers"]).to(DEVICE)
-        else:
-            model = OrbitMLP(hidden_sizes=config["hidden_layers"], config=config).to(DEVICE)
-        
-        model = torch.compile(model)
-
-    if config["optimizer"] == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=config["start_learning_rate"])
-    elif config["optimizer"] == "adamW":
-        optimizer = torch.optim.AdamW(model.parameters(), lr=config["start_learning_rate"])
-    else:
-        raise Exception(f"Unexpected optimizer choice in config: {config["optimizer"]=}")
-
-
+def init_scheduler(config, optimizer):
     if config["scheduler"] == "plateau":
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode="min", factor=0.5, patience=config["patience"], min_lr=config["min_learning_rate"]
@@ -515,7 +544,68 @@ def load_model(config):
         )
     else:
         raise Exception(f"Unexpected scheduler choice in config: {config["scheduler"]=}")
+    
+    return scheduler
 
+def init_model(config, hidden_sizes):
+
+    if "model_type" not in config:
+        model = OrbitMLP(hidden_sizes=hidden_sizes, config=config).to(DEVICE)
+
+    if config["model_type"] == "residual":
+        model = OrbitResidualMLP(hidden_sizes=hidden_sizes, config=config).to(DEVICE)
+    elif config["model_type"] == "fourier":
+        model = OrbitFFMLP(hidden_sizes, config).to(DEVICE)
+    elif config["model_type"] == "siren":
+        model = OrbitSiren(hidden_sizes).to(DEVICE)
+    else:
+        model = OrbitMLP(hidden_sizes=hidden_sizes, config=config).to(DEVICE)
+    
+    return model
+
+def load_model_from_file(config):
+    """Load trained model."""
+    torch.set_float32_matmul_precision("high")
+
+    checkpoint = torch.load(config["model_name"], map_location=DEVICE)
+
+    flogger.info(
+        f"Checkpoint loaded: {pformat(checkpoint["hidden_sizes"])}" +
+        f", {pformat(checkpoint["norm_path"])}"
+    )
+
+    model = init_model(config, checkpoint["hidden_sizes"])
+
+    model = torch.compile(model)
+    model.load_state_dict(checkpoint["model_state"])
+    model.eval()
+    return model
+
+
+def load_model(config):
+    flogger.info("Loading model")
+
+    best_val_loss = float("inf")
+
+    if os.path.exists(config["model_name"]):
+        flogger.info("Found existing model, loading from file.")
+        model = load_model_from_file(config)
+    else:
+        flogger.info("Creating a new model from scratch.")
+
+        model = init_model(config, config["hidden_layers"])
+        
+        model = torch.compile(model)
+
+    if config["optimizer"] == "adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=config["start_learning_rate"])
+    elif config["optimizer"] == "adamW":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=config["start_learning_rate"])
+    else:
+        raise Exception(f"Unexpected optimizer choice in config: {config["optimizer"]=}")
+
+
+    scheduler = init_scheduler(config, optimizer)
 
     if os.path.exists(config["model_name"]):
         best_val_loss = load_checkpoint(
@@ -528,11 +618,7 @@ def load_model(config):
         if "override_learning_rate" in config and config["override_learning_rate"]:
             for param_group in optimizer.param_groups:
                 param_group["lr"] = config["start_learning_rate"]
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode="min", factor=0.5, 
-                patience=config["patience"], 
-                min_lr=config["min_learning_rate"]
-            )
+            scheduler = init_scheduler(config, optimizer)
             best_val_loss = float('inf')
     
     return model, scheduler, optimizer, best_val_loss

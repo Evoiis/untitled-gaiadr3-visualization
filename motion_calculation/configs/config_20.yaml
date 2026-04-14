@@ -35,8 +35,9 @@ runs:
     start_learning_rate: 0.001
     scheduler: cosanneal
     epochs: 140
+    loss_fn: huber
+    huber_delta: 1.0
   4:
-    # huber loss
     training_data_filter: /orbit_train_*.npy
     min_learning_rate: 0.000001
     start_learning_rate: 0.0001
@@ -44,3 +45,5 @@ runs:
     patience: 15
     override_learning_rate: True
     epochs: 150
+    loss_fn: huber
+    huber_delta: 0.1

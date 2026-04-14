@@ -11,8 +11,8 @@ batch_size: 100000
 
 use_half_precision: False # [True,False] loads training data into gpu at half precision, recasts to float on batch usage
 use_dataloader: False # [True,False]
-use_residual_model: False
 use_gradient_clipping: True
+model_type: plain # [plain, residual, fourier, siren]
 
 grad_clip_max_norm: 0.1
 optimizer: adamW # [adam, adamW]

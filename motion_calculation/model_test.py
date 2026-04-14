@@ -26,7 +26,7 @@ if not os.path.exists(MODEL_PATH):
 
 # OVERRIDE
 # NORM_PATH = "orbit_norm_6.json"
-# MODEL_PATH = "orbit_mlp_17_300epochs.pt"
+# MODEL_PATH = "orbit_mlp_20_300.pt"
 
 # ^^^ INPUT ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

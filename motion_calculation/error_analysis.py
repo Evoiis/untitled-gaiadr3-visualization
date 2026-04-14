@@ -24,7 +24,7 @@ from orbit_mlp import (
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-CONFIG_FILE_PATH = "configs/config_20.yaml"
+CONFIG_FILE_PATH = "configs/config_22.yaml"
 # MODEL_NAME = "orbit_mlp_15.pt"
 # # MODEL_PATH    = "./prev_models/" + MODEL_NAME
 # MODEL_PATH    = MODEL_NAME
@@ -86,6 +86,34 @@ def plot_per_axis(errors_xyz, filename, output_dir):
                      f"Std={errors_xyz[:,i].std():.2f} pc")
         ax.grid(True, alpha=0.3)
     plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, filename), dpi=150)
+    plt.close()
+    print(f"Saved: {filename}")
+
+
+def plot_xyz_comparison(y_pred, y_true, output_dir, title="XYZ Comparison", n_samples=2000):
+    """
+    y_pred, y_true: (N, 3) numpy arrays in parsecs (heliocentric x, y, z)
+    """
+    idx = np.random.choice(len(y_pred), min(n_samples, len(y_pred)), replace=False)
+    p = y_pred[idx]
+    t = y_true[idx]
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig.suptitle(title)
+
+    for i, axis in enumerate(['x', 'y', 'z']):
+        ax = axes[i]
+        lim = max(np.abs(t[:, i]).max(), np.abs(p[:, i]).max())
+        ax.scatter(t[:, i], p[:, i], alpha=0.2, s=3)
+        ax.plot([-lim, lim], [-lim, lim], 'r--', linewidth=1, label='Perfect')
+        ax.set_xlabel(f"True {axis} (pc)")
+        ax.set_ylabel(f"Pred {axis} (pc)")
+        ax.set_title(f"{axis} — RMSE: {np.sqrt(((p[:, i] - t[:, i])**2).mean()):.2f} pc")
+        ax.set_aspect('equal')
+
+    plt.tight_layout()
+    filename = "xyz_comparison.png"
     plt.savefig(os.path.join(output_dir, filename), dpi=150)
     plt.close()
     print(f"Saved: {filename}")
@@ -232,6 +260,13 @@ def main():
         title="Error vs Speed normalized by distance",
         filename="error_vs_speed_normalized.png",
         output_dir=output_dir
+    )
+
+    plot_xyz_comparison(
+        y_pred,
+        y_true,
+        output_dir=output_dir,
+        title="Predicted vs True XYZ"
     )
 
     print(f"\nAll plots saved to: {output_dir}/")
