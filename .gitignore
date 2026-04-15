@@ -1263,3 +1263,5 @@ test_data*/
 training_data*/
 models/
 *_output/
+queue_runs.sh
+queue_model_test.sh

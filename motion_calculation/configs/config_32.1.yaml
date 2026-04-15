@@ -1,4 +1,4 @@
-model_name: orbit_mlp_31.1.pt
+model_name: orbit_mlp_32.1.pt
 
 norm_path: "norms/orbit_norm_data_13S.json"
 val_data_path: data/dataset_13S/validation_data
@@ -6,7 +6,7 @@ test_data_path: data/dataset_13S/test_data
 training_data_path: data/dataset_13S/training_data
 
 hidden_layers: [512, 512, 256, 256, 128]
-epochs: 300
+epochs: 600
 batch_size: 102400
 
 use_dataloader: False

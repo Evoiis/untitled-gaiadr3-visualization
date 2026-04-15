@@ -231,14 +231,12 @@ HIDDEN=[256, 256, 256, 128] (No change from before)
 - huber delta: 0.1
 - using bfloat16
 
-val_loss= 1.82e-05
 68.663 parsecs error
 
 #### 27:
 - 26, but huber delta: 0.1
 - using bfloat16
 
-val_loss: 1.57e-05
 64.146 parsecs loss
 
 
@@ -273,37 +271,81 @@ popped at the start due to high learning rate
 
 - After 150 epochs:
     - 22.869 parsecs test error
-    - val_loss: ~4e-6
 
 - After 300 epochs:
     - 17.2679 parsecs test error
-    - val_loss: ~2.46e-6
 
 - After 450 epochs:
     - 16.794 parsecs test error:
-    - val_loss: ~1.11e-6
 
 - After 600 epochs:
     - 16.3289 parsecs test error:
-    - val_loss: ~1.21e-6
 
 #### 30.1:
 - using fp16
 
 - After 150 epochs: 
     - 16.8988 parsecs test error
-    - val_loss: ~2.56e-6
+
+- After 300 epochs:
+    - 13.0536 parsecs test error
+
+- After 450 epochs:
+    - 11.471961 parsecs test error
+
+- After 600 epochs:
+    - 10.975 parsecs test error
 
 - Looks like bf16 is having a detrimental effect on training...
 
 #### 31: (training_data_13S)
 - 13S data, 100k stars instead of 1M
 - fp16
+- 65.459 parsecs test error
+
+- second run, no changes
+- 54.796 parsecs test error
+
+- third run, cast to float
+- 55.791 parsecs test error
 
 #### 31.1: (training_data_13S)
 - 13S data, 100k stars instead of 1M
 - fp32
+- 342.569 parsecs test error
 
-#### 31.1: (training_data_13S)
+- second run, with gradscaler and grad clipping
+- 46.023 parsecs test error
+
+- third run, no autocast, no gradscaler, with grad clipping
+- 48.7197
+
+- **Looks like autocast is negatively affecting fp32**
+
+- fourth run, no autocast, no gradscaler, with grad clipping
+- 46.684 parsecs test error
+
+- 5th run, no changes, with grad clipping
+- 47.102 parsecs test error
+
+#### 31.1.1:
+- 31.1 but with no grad clipping
+- 
+
+#### 31.2: (training_data_13S)
 - 13S data, 100k stars instead of 1M
 - bf16
+- 66.330 parsecs test error
+
+- second run, cast to float, no autocast
+- 64.188 parsecs test error
+
+#### 32:
+- 31, fp32, 600 epochs
+
+#### 32.1:
+- 31.1, 600 epochs, with grad clipping
+
+#### 32.2:
+- 31.2, 600 epochs
+- 

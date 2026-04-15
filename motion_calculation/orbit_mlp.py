@@ -84,7 +84,7 @@ class OrbitDataset(Dataset):
         y = (y - norm_stats["y_mean"]) / norm_stats["y_std"]
 
         flogger.info("Inputs normalized, loading into torch.")
-        print(f"Loading {folder_path} as {dtype_choice=}")
+        flogger.info(f"Loading {folder_path} as {dtype_choice=}")
         if dtype_choice == "fp16":
             self.X = torch.from_numpy(X).half()
             self.y = torch.from_numpy(y).half()
@@ -395,14 +395,22 @@ def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, scaler, conf
     for i in range(0, len(X), config["batch_size"]):
         idx = perm[i:i+config["batch_size"]]
 
-        X_batch = X[idx]
-        y_batch = y[idx]
+        if target_dtype == torch.bfloat16 or target_dtype == torch.float16:
+            X_batch = X[idx].float()
+            y_batch = y[idx].float()
+        else:
+            X_batch = X[idx]
+            y_batch = y[idx]
 
         optimizer.zero_grad(set_to_none=True)
 
-        with autocast(device_type=DEVICE, dtype=target_dtype):
+        if target_dtype == torch.float32 or target_dtype == torch.bfloat16:
             predictions = model(X_batch)
-            loss = loss_fn(predictions.float(), y_batch.float())
+            loss = loss_fn(predictions, y_batch)
+        else:
+            with autocast(device_type=DEVICE, dtype=target_dtype):
+                predictions = model(X_batch)
+                loss = loss_fn(predictions, y_batch)
 
         if target_dtype == torch.float16:
             scaler.scale(loss).backward()
@@ -788,7 +796,7 @@ def main():
     for run in run_list:
         if config["model_name"] in os.listdir("."):
             shutil.copyfile(config["model_name"], "r" + str(run - 1) + "_" + config["model_name"])
-        flogger.info(f"Starting run: {run}")
+        flogger.info(f"\n\nStarting run: {run}")
         run_training_run(config | runs[run])
 
 if __name__ == "__main__":

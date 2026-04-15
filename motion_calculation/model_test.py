@@ -2,43 +2,44 @@ from orbit_mlp import load_model_from_file, OrbitDataset, evaluate_with_full_dat
 import torch
 import torch.nn as nn
 
+import argparse
 import time
 import os
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-CONFIG_FILE = "configs/config_20.yaml"
-
-print("\nLoading model for test evaluation...")
+TEST_DATA_PATH = "test_data_12"
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 torch.set_float32_matmul_precision("high")
-
 flogger.set_write_to_file(False)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("config_file")
+parser.add_argument("--model_name", required=False)
+parser.add_argument("--test_data", required=False)
+args = parser.parse_args()
+
+CONFIG_FILE = args.config_file
+if args.test_data:
+    TEST_DATA_PATH = args.test_data
+
 config = load_config(CONFIG_FILE)
 
-# --- INPUT -------------------------------------------------
-# OVERRIDE model name
-# config["model_name"] = "./prev_models/orbit_mlp_7.pt"
+if args.model_name:
+    config["model_name"] = args.model_name
 
-# TEST_DATA_PATH = "./prev_data/test_data_3"
-TEST_DATA_PATH = "test_data_12"
-NORM_PATH = config["norm_path"]
+norm_path = config["norm_path"]
 
 if not os.path.exists(config["model_name"]):
     config["model_name"] = "./prev_models/" + config["model_name"]
 
-if not os.path.exists(NORM_PATH):
-    NORM_PATH = "./norms/" + NORM_PATH
+if not os.path.exists(norm_path):
+    norm_path = "./norms/" + norm_path
 
-# OVERRIDE
-# NORM_PATH = "orbit_norm_6.json"
 
-# ^^^ INPUT ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-print(f"\nRunning model test on: {config['model_name']}")
-print(f"Using norms: {NORM_PATH}\n")
+print(f"\nLoading model {config['model_name']=} for test evaluation...")
 model = load_model_from_file(config)
-norm_stats = load_norm_stats(NORM_PATH)
+norm_stats = load_norm_stats(norm_path)
 
 print(f"Loading test data from: {TEST_DATA_PATH}")
 test_set = OrbitDataset(TEST_DATA_PATH, norm_stats)

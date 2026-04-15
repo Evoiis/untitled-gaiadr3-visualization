@@ -1,4 +1,4 @@
-model_name: orbit_mlp_31.1.pt
+model_name: orbit_mlp_32.pt
 
 norm_path: "norms/orbit_norm_data_13S.json"
 val_data_path: data/dataset_13S/validation_data
@@ -6,12 +6,12 @@ test_data_path: data/dataset_13S/test_data
 training_data_path: data/dataset_13S/training_data
 
 hidden_layers: [512, 512, 256, 256, 128]
-epochs: 300
+epochs: 600
 batch_size: 102400
 
 use_dataloader: False
-use_gradient_clipping: True
-data_dtype: fp32 # [fp16, fp32, bf16]
+use_gradient_clipping: False
+data_dtype: fp16 # [fp16, fp32, bf16]
 
 grad_clip_max_norm: 0.1
 optimizer: adam # [adam, adamW]
