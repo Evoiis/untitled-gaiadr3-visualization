@@ -9,8 +9,8 @@ from torch.amp import autocast, GradScaler
 import torch
 import yaml
 import torch.nn as nn
+import mlflow
 
-from collections import Counter
 from pprint import pformat
 from file_logger import FileLogger
 import numpy as np
@@ -716,6 +716,19 @@ def run_training_run(config):
 
         elapsed = time.time() - t0
 
+        
+        mlflow.log_metrics(
+            {
+            "epoch time": elapsed,
+            "best_val_loss": best_val_loss,
+            "learning rate": optimizer.param_groups[0]['lr'],
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "train_pc_err": train_pc,
+            "validation_pc_err": val_pc
+            },
+            step=epoch
+        )
         flogger.info(
             f"Epoch {epoch}/{config["epochs"]}  "
             f"train_loss={train_loss:.2e}  "
@@ -736,6 +749,7 @@ def run_training_run(config):
                 "best_val_loss": best_val_loss
             }, config["model_name"])
 
+    mlflow.pytorch.log_model(model, name=config["model_name"].replace(".","_"))
     # --- final test evaluation ---
     flogger.info(f"\nLoading {config["model_name"]}  model for test evaluation...")
     model = load_model_from_file(config)
@@ -754,6 +768,7 @@ def run_training_run(config):
 def main():
     torch.set_float32_matmul_precision("high")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    mlflow.set_tracking_uri('http://localhost:5000')
 
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file")
@@ -773,11 +788,15 @@ def main():
     runs = config.pop("runs")
     run_list = list(runs.keys())
     run_list.sort()
+
     for run in run_list:
         if config["model_name"] in os.listdir("."):
             shutil.copyfile(config["model_name"], "r" + str(run - 1) + "_" + config["model_name"])
         flogger.info(f"\n\nStarting run: {run}")
-        run_training_run(config | runs[run])
+        with mlflow.start_run(run_name=config["model_name"] + "_" + str(run)):
+            run_config = config | runs[run]
+            mlflow.log_params(run_config)
+            run_training_run(run_config)
 
 if __name__ == "__main__":
     main()
