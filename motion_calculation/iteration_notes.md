@@ -466,7 +466,6 @@ Results:
 - Batch size of 4096 = slower epochs but loss drops faster
     - Can reduce plateau scheduler patience and epochs with 4096
         - Or use cosanneal or multistep scheduler
-    - Trade off with precision? I should try a longer epoch with high batch size
 - 
 
 #### 34.0: (training_data_13S)
@@ -516,6 +515,10 @@ Results:
 - Default hidden layer
 - Batch size 8192
 
+Iteration 35. MLflow Integration
+---
+https://mlflow.org/docs/latest/ml/deep-learning/pytorch/index.html
+- Integrate mlflow to track metrics during training
 
 
 

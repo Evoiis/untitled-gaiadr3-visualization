@@ -28,10 +28,14 @@ OVERRIDE_MODEL_NAME = None
 
 CONFIG_FILE_PATH = "configs/config_24.yaml"
 # OVERRIDE_MODEL_NAME = "prev_models/orbit_mlp_7.pt"
-TEST_DATA_PATH = "./prev_data/test_data_3"
-# OUTPUT_DIR    = "error_analysis_output/" + MODEL_NAME
 
-# os.makedirs(OUTPUT_DIR, exist_ok=True)
+test_data_folders = [
+    "prev_data/test_data_3",
+    "test_data_12",
+    "data/dataset_13S/test_data",
+    "data/dataset_14_20p/test_data",
+    "data/dataset_15_300k/test_data",
+]
 
 # ── Load val data ─────────────────────────────────────────────────────────────
 
@@ -156,9 +160,8 @@ def main():
     if OVERRIDE_MODEL_NAME:
         config["model_name"] = OVERRIDE_MODEL_NAME
 
-    output_dir = "error_analysis_output/" + config["model_name"]
-
-    os.makedirs(output_dir, exist_ok=True)
+    model_output_dir = "error_analysis_output/" + config["model_name"]
+    os.makedirs(model_output_dir, exist_ok=True)
 
     flogger.set_write_to_file(False)
 
@@ -166,111 +169,119 @@ def main():
         config["norm_path"] = "norms/" + config["norm_path"]
 
     norm_stats = load_norm_stats(config["norm_path"])
-    model      = load_model_from_file(config)
+    model = load_model_from_file(config)
 
-    data = load_val_data(TEST_DATA_PATH)
 
-    inputs = data[:, :7].astype(np.float32)   # x0, y0, z0, vx0, vy0, vz0, t
-    y_true = data[:, 7:].astype(np.float32)   # heliocentric x, y, z positions
+    for test_data_folder in test_data_folders:
+        print(f"Running {test_data_folder} on {config["norm_path"]}")
 
-    t = data[:, 6].astype(np.float32)
-    r0 = np.sqrt(data[:, 0]**2 + data[:, 1]**2) - 8000
+        test_output_dir = model_output_dir + "/" + test_data_folder.replace("/", "_")
 
-    initial_pos_helio = data[:, :3].copy().astype(np.float32)
-    initial_pos_helio[:, 0] -= 8000
+        os.makedirs(test_output_dir, exist_ok=True)
 
-    displacement_mag = np.sqrt(np.sum((y_true - initial_pos_helio[:, :3])**2, axis=1))
+        data = load_val_data(test_data_folder)
 
-    print(f"displacement_mag min:  {displacement_mag.min():.1f} pc")
-    print(f"displacement_mag max:  {displacement_mag.max():.1f} pc")
-    print(f"displacement_mag mean: {displacement_mag.mean():.1f} pc")
+        inputs = data[:, :7].astype(np.float32)   # x0, y0, z0, vx0, vy0, vz0, t
+        y_true = data[:, 7:].astype(np.float32)   # heliocentric x, y, z positions
 
-    print("Running inference...")
-    y_pred = predict_in_chunks(model, norm_stats, inputs)
+        t = data[:, 6].astype(np.float32)
+        r0 = np.sqrt(data[:, 0]**2 + data[:, 1]**2) - 8000
 
-    errors_xyz = y_pred - y_true
-    errors_pc  = np.sqrt(np.mean(errors_xyz**2, axis=1))
+        initial_pos_helio = data[:, :3].copy().astype(np.float32)
+        initial_pos_helio[:, 0] -= 8000
 
-    print_summary(errors_pc, errors_xyz)
-    print_worst_cases(errors_pc, t, r0, displacement_mag)
+        displacement_mag = np.sqrt(np.sum((y_true - initial_pos_helio[:, :3])**2, axis=1))
 
-    plot_per_axis(np.abs(errors_xyz), "per_axis_error.png", output_dir=output_dir)
+        # print(f"displacement_mag min:  {displacement_mag.min():.1f} pc")
+        # print(f"displacement_mag max:  {displacement_mag.max():.1f} pc")
+        # print(f"displacement_mag mean: {displacement_mag.mean():.1f} pc")
+        # print("Running inference...")
 
-    plot_error_vs_binned(
-        t, errors_pc,
-        xlabel="Time t (Gyr)",
-        title="Error vs Time",
-        filename="error_vs_time.png",
-        output_dir=output_dir
-    )
-    plot_error_vs_binned(
-        np.abs(t), errors_pc,
-        xlabel="|t| (Gyr)",
-        title="Error vs |Time|",
-        filename="error_vs_abs_time.png",
-        output_dir=output_dir
-    )
-    plot_error_vs_binned(
-        r0, errors_pc,
-        xlabel="Initial orbital radius r0 (pc)",
-        title="Error vs Orbital Radius",
-        filename="error_vs_r0.png",
-        output_dir=output_dir
-    )
-    plot_error_vs_binned(
-        displacement_mag, errors_pc,
-        xlabel="True displacement magnitude (pc)",
-        title="Error vs Displacement Magnitude",
-        filename="error_vs_displacement.png",
-        output_dir=output_dir
-    )
+        y_pred = predict_in_chunks(model, norm_stats, inputs)
 
-    r_helio = np.sqrt((data[:, 0] - 8000)**2 + data[:, 1]**2 + data[:, 2]**2)
+        errors_xyz = y_pred - y_true
+        errors_pc  = np.sqrt(np.mean(errors_xyz**2, axis=1))
 
-    plot_error_vs_binned(
-        r_helio, errors_pc,
-        xlabel="Initial heliocentric distance (pc)",
-        title="Error vs Heliocentric Distance",
-        filename="error_vs_rhelio.png",
-        output_dir=output_dir
-    )
+        # print_summary(errors_pc, errors_xyz)
+        # print_worst_cases(errors_pc, t, r0, displacement_mag)
 
-    speed    = np.sqrt(data[:, 3]**2 + data[:, 4]**2 + data[:, 5]**2)
-    v_radial = np.abs(data[:, 3] * (data[:, 0] - 8000) +
-                    data[:, 4] *  data[:, 1] +
-                    data[:, 5] *  data[:, 2]) / (r_helio + 1e-6)
+        plot_per_axis(np.abs(errors_xyz), "per_axis_error.png", output_dir=test_output_dir)
 
-    plot_error_vs_binned(
-        speed, errors_pc,
-        xlabel="Initial speed (pc/Gyr)",
-        title="Error vs Speed",
-        filename="error_vs_speed.png",
-        output_dir=output_dir
-    )
-    plot_error_vs_binned(
-        v_radial, errors_pc,
-        xlabel="Radial velocity component (pc/Gyr)",
-        title="Error vs Radial Velocity",
-        filename="error_vs_vradial.png",
-        output_dir=output_dir
-    )
+        plot_error_vs_binned(
+            t, errors_pc,
+            xlabel="Time t (Gyr)",
+            title="Error vs Time",
+            filename="error_vs_time.png",
+            output_dir=test_output_dir
+        )
+        plot_error_vs_binned(
+            np.abs(t), errors_pc,
+            xlabel="|t| (Gyr)",
+            title="Error vs |Time|",
+            filename="error_vs_abs_time.png",
+            output_dir=test_output_dir
+        )
+        plot_error_vs_binned(
+            r0, errors_pc,
+            xlabel="Initial orbital radius r0 (pc)",
+            title="Error vs Orbital Radius",
+            filename="error_vs_r0.png",
+            output_dir=test_output_dir
+        )
+        plot_error_vs_binned(
+            displacement_mag, errors_pc,
+            xlabel="True displacement magnitude (pc)",
+            title="Error vs Displacement Magnitude",
+            filename="error_vs_displacement.png",
+            output_dir=test_output_dir
+        )
 
-    plot_error_vs_binned(
-    speed / (r_helio + 1e-6), errors_pc,
-        xlabel="Speed / heliocentric distance (pc/Gyr per pc)",
-        title="Error vs Speed normalized by distance",
-        filename="error_vs_speed_normalized.png",
-        output_dir=output_dir
-    )
+        r_helio = np.sqrt((data[:, 0] - 8000)**2 + data[:, 1]**2 + data[:, 2]**2)
 
-    plot_xyz_comparison(
-        y_pred,
-        y_true,
-        output_dir=output_dir,
-        title="Predicted vs True XYZ"
-    )
+        plot_error_vs_binned(
+            r_helio, errors_pc,
+            xlabel="Initial heliocentric distance (pc)",
+            title="Error vs Heliocentric Distance",
+            filename="error_vs_rhelio.png",
+            output_dir=test_output_dir
+        )
 
-    print(f"\nAll plots saved to: {output_dir}/")
+        speed    = np.sqrt(data[:, 3]**2 + data[:, 4]**2 + data[:, 5]**2)
+        v_radial = np.abs(data[:, 3] * (data[:, 0] - 8000) +
+                        data[:, 4] *  data[:, 1] +
+                        data[:, 5] *  data[:, 2]) / (r_helio + 1e-6)
+
+        plot_error_vs_binned(
+            speed, errors_pc,
+            xlabel="Initial speed (pc/Gyr)",
+            title="Error vs Speed",
+            filename="error_vs_speed.png",
+            output_dir=test_output_dir
+        )
+        plot_error_vs_binned(
+            v_radial, errors_pc,
+            xlabel="Radial velocity component (pc/Gyr)",
+            title="Error vs Radial Velocity",
+            filename="error_vs_vradial.png",
+            output_dir=test_output_dir
+        )
+
+        plot_error_vs_binned(
+        speed / (r_helio + 1e-6), errors_pc,
+            xlabel="Speed / heliocentric distance (pc/Gyr per pc)",
+            title="Error vs Speed normalized by distance",
+            filename="error_vs_speed_normalized.png",
+            output_dir=test_output_dir
+        )
+
+        plot_xyz_comparison(
+            y_pred,
+            y_true,
+            output_dir=test_output_dir,
+            title="Predicted vs True XYZ"
+        )
+
+        print(f"\nAll plots saved to: {test_output_dir}/")
 
 
 if __name__ == "__main__":
