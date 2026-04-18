@@ -819,15 +819,15 @@ def manual_training(config, exp_id):
 
 def objective(trial: optuna.trial.Trial, config, exp_id):
     # data_set_name = trial.suggest_categorical("dataset_name", ["14_20p", "15_300k"])
-    data_set_name = "14_20p"
+    data_set_name = config["data_set_name"]
     config["val_data_path"] = f"data/dataset_{data_set_name}/validation_data"
     config["test_data_path"] = f"data/dataset_{data_set_name}/test_data"
     config["training_data_path"] = f"data/dataset_{data_set_name}/training_data"
     config["norm_path"] = f"norms/orbit_norm_data_{data_set_name}.json"
 
     config["hidden_layers"] = []
-    n_layers = trial.suggest_int("n_layers", 4, 9)
-    hlayer_choices = [128, 256, 512]
+    n_layers = trial.suggest_int("n_layers", 6, 9)
+    hlayer_choices = [256, 512]
     prev_layer = len(hlayer_choices) - 1
     for i in range(n_layers):
         hc_index = trial.suggest_int(f"hlayer{i}_width", 0 , prev_layer)
@@ -841,30 +841,30 @@ def objective(trial: optuna.trial.Trial, config, exp_id):
 
     config["scheduler"] = trial.suggest_categorical(
         "scheduler",
-        ["plateau", "cosanneal", "cosannealwarmrestart", "step", "multistep"]
+        ["plateau", "cosanneal", "step"]
     )
     if config["scheduler"] == "plateau":
         config["patience"] = trial.suggest_int("plateau_patience", 5, 20)
-    elif config["scheduler"] == "cosannealwarmrestart":
-        config["warm_restart_epochs"] = trial.suggest_int("warm_restart_epochs", 20, 100)
-        config["warm_restart_cycle_mult"] = trial.suggest_int("warm_restart_cycle_mult", 1, 5)
+    # elif config["scheduler"] == "cosannealwarmrestart":
+    #     config["warm_restart_epochs"] = trial.suggest_int("warm_restart_epochs", 20, 100)
+    #     config["warm_restart_cycle_mult"] = trial.suggest_int("warm_restart_cycle_mult", 1, 5)
     elif config["scheduler"] == "step":
-        config["scheduler_step_size"] = trial.suggest_int("scheduler_step_size", 20, 100)
+        config["scheduler_step_size"] = trial.suggest_int("scheduler_step_size", 5, 20)
         config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
-    elif config["scheduler"] == "multistep":
-        config["scheduler_milestones"] = []
-        n_milestones = trial.suggest_int("n_milestones", 1, 3)
-        prev_milestone = 0
-        for i in range(n_milestones):
-            prev_milestone = trial.suggest_int(f"multistep_milestone{i}", prev_milestone + 5, min(prev_milestone + 30, config["epochs"]))
-            config["scheduler_milestones"].append(prev_milestone)
-        config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
+    # elif config["scheduler"] == "multistep":
+    #     config["scheduler_milestones"] = []
+    #     n_milestones = trial.suggest_int("n_milestones", 1, 3)
+    #     prev_milestone = 0
+    #     for i in range(n_milestones):
+    #         prev_milestone = trial.suggest_int(f"multistep_milestone{i}", prev_milestone + 5, min(prev_milestone + 30, config["epochs"]))
+    #         config["scheduler_milestones"].append(prev_milestone)
+    #     config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
 
     config["min_learning_rate"] = trial.suggest_float("min_learning_rate", 1e-8, 1e-6, log=True)
-    config["start_learning_rate"] = trial.suggest_float("start_learning_rate", 1e-5, 2e-3, log=True)
+    config["start_learning_rate"] = trial.suggest_float("start_learning_rate", 1e-4, 2e-3, log=True)
     
 
-    config["model_name"] = f"trial{trial.number}_" + config["orignal_model_name"]
+    config["model_name"] = f"trial{trial.number}_" + config["original_model_name"]
 
     # Run Trial
     flogger.info(f"Running optuna trial: {trial.number}")
@@ -878,11 +878,11 @@ def objective(trial: optuna.trial.Trial, config, exp_id):
 def optuna_training(config, exp_id):
     study = optuna.create_study(
         direction="minimize",
-        storage="sqlite:///orbit_study_storage.db",
+        storage="sqlite:///orbit_study_storage_beta.db",
         study_name=config["study_name"],
         load_if_exists=True,
         pruner=optuna.pruners.HyperbandPruner(
-            min_resource=35,
+            min_resource=10,
             max_resource=config["epochs"],
             reduction_factor=3
         ),
@@ -891,7 +891,25 @@ def optuna_training(config, exp_id):
             multivariate=True
         )
     )
-    config["orignal_model_name"] = config["model_name"]
+
+    study.enqueue_trial({
+        "start_learning_rate": 1e-3,
+        "min_learning_rate": 1e-6,
+        "hidden_layers": 9,
+        "hlayer0_width": 0,
+        "hlayer1_width": 0,
+        "hlayer2_width": 0,
+        "hlayer3_width": 0,
+        "hlayer4_width": 0,
+        "hlayer5_width": 0,
+        "hlayer6_width": 0,
+        "hlayer7_width": 0,
+        "hlayer8_width": 0,
+        "scheduler": "plateau",
+        "plateau_patience": 5
+    })
+
+    config["original_model_name"] = config["model_name"]
     study.optimize(lambda trial: objective(trial, config, exp_id), n_trials=config["n_trials"], timeout=None)
 
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
