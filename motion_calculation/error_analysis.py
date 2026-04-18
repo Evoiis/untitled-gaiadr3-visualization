@@ -18,8 +18,7 @@ from orbit_mlp import (
     load_model_from_file,
     predict_batch,
     load_config,
-    DEVICE,
-    flogger
+    DEVICE
 )
 
 OVERRIDE_MODEL_NAME = None
@@ -162,8 +161,6 @@ def main():
 
     model_output_dir = "error_analysis_output/" + config["model_name"]
     os.makedirs(model_output_dir, exist_ok=True)
-
-    flogger.set_write_to_file(False)
 
     if not os.path.exists(config["norm_path"]):
         config["norm_path"] = "norms/" + config["norm_path"]

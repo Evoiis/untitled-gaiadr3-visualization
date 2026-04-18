@@ -4,7 +4,7 @@ from datetime import datetime
 class FileLogger():
     def __init__(self):
         self.text_file = None
-        self.write_to_file = True
+        self.write_to_file = False
     
     def set_folder_and_file(self, folder_path, log_file_name) -> None:
         if not os.path.exists(folder_path):
@@ -12,9 +12,7 @@ class FileLogger():
 
         file_path = folder_path + "/" + log_file_name
         self.text_file = open(file_path, "a")
-    
-    def set_write_to_file(self, setting: bool):
-        self.write_to_file = setting
+        self.write_to_file = True
     
     def __log_to_file(self, log_string: str):
         if not self.write_to_file:

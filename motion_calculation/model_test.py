@@ -6,7 +6,7 @@ Quick and dirty script to test models with test data
     - Time taken print is only for a very rough idea of speed
 """
 
-from orbit_mlp import load_model_from_file, OrbitDataset, evaluate_with_full_dataset_on_gpu, loss_to_parsecs, load_config, load_norm_stats, flogger
+from orbit_mlp import load_model_from_file, OrbitDataset, evaluate_with_full_dataset_on_gpu, loss_to_parsecs, load_config, load_norm_stats
 import torch
 import torch.nn as nn
 
@@ -25,7 +25,6 @@ test_data_folders = [
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 torch.set_float32_matmul_precision("high")
-flogger.set_write_to_file(False)
 
 # python model_test.py <config>
 # optional --model_name <model_name>

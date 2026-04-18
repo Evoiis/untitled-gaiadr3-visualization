@@ -1265,3 +1265,4 @@ models/
 *_output/
 queue_runs.sh
 queue_model_test.sh
+motion_calculation/*.pt
