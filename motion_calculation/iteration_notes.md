@@ -559,9 +559,9 @@ https://mlflow.org/docs/latest/ml/deep-learning/pytorch/index.html
 - Integrate mlflow to track metrics during training
 
 
-Iteration X. Optune/Ray Tune Integration
+Iteration Optuna 0. Optuna Integration
 ---
-Try hyperparameter tuning with a framework
+- Try hyperparameter tuning with optuna
 
 Future Iterations:
 - Residual NN

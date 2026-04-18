@@ -9,6 +9,16 @@ Also attempting to train an MLP(multi-layer perceptron) to create a speedier alt
 
 Star Galactocentric data --> Orbit MLP --> Heliocentric displacement --> Heliocentric position
 
+optuna dashboard:
+```
+optuna-dashboard sqlite:///orbit_study_storage.db
+```
+
+mlflow dashbaord:
+```
+mlflow server --port 5000
+```
+
 ## Dependencies
 
 Cuda 13.0.0 Install

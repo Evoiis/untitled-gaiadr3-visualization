@@ -634,7 +634,6 @@ def load_model(config):
     else:
         raise Exception(f"Unexpected optimizer choice in config: {config["optimizer"]=}")
 
-
     scheduler = init_scheduler(config, optimizer)
 
     if os.path.exists(config["model_name"]):
@@ -710,11 +709,8 @@ def run_training_run(config, trial: optuna.trial.Trial = None):
 
         if config["scheduler"] == "plateau":
             scheduler.step(val_loss)
-        elif config["scheduler"] in ["cosanneal", "cosannealwarmrestart", "multistep", "step"]:
-            scheduler.step()            
         else:
-            raise Exception(f"Unexpected scheduler choice in config: {config["scheduler"]=}")
-        
+            scheduler.step()        
 
         if "loss_fn" in config and config["loss_fn"] == "huber":
             train_pc = loss_to_parsecs_huber(train_loss, norm_stats)
@@ -724,7 +720,6 @@ def run_training_run(config, trial: optuna.trial.Trial = None):
             val_pc   = loss_to_parsecs(val_loss,   norm_stats)
 
         elapsed = time.time() - t0
-
         
         mlflow.log_metrics(
             {
@@ -759,7 +754,7 @@ def run_training_run(config, trial: optuna.trial.Trial = None):
             }, config["model_name"])
         
         if trial is not None:
-            trial.report(val_loss, epoch)
+            trial.report(val_pc, epoch)
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
 
@@ -823,7 +818,8 @@ def manual_training(config, exp_id):
             run_training_run(run_config)
 
 def objective(trial: optuna.trial.Trial, config, exp_id):
-    data_set_name = trial.suggest_categorical("dataset_name", ["14_20p", "15_300k"])
+    # data_set_name = trial.suggest_categorical("dataset_name", ["14_20p", "15_300k"])
+    data_set_name = "14_20p"
     config["val_data_path"] = f"data/dataset_{data_set_name}/validation_data"
     config["test_data_path"] = f"data/dataset_{data_set_name}/test_data"
     config["training_data_path"] = f"data/dataset_{data_set_name}/training_data"
@@ -831,20 +827,24 @@ def objective(trial: optuna.trial.Trial, config, exp_id):
 
     config["hidden_layers"] = []
     n_layers = trial.suggest_int("n_layers", 4, 9)
+    hlayer_choices = [128, 256, 512]
+    prev_layer = len(hlayer_choices) - 1
     for i in range(n_layers):
-        config["hidden_layers"].append(
-            trial.suggest_int(f"hlayer{i}_width", 64, 1024, step=64)
-        )
+        hc_index = trial.suggest_int(f"hlayer{i}_width", 0 , prev_layer)
+        prev_layer = hc_index
+        config["hidden_layers"].append(hlayer_choices[hc_index])
+
     
-    config["epochs"] = trial.suggest_int("n_epochs", 50, 1000)
-    config["batch_size"] = trial.suggest_int("batch_size", 1024, 61440, step=1024)
+    config["batch_size"] = 4096
+    # config["epochs"] = trial.suggest_int("n_epochs", 50, 1000)
+    # config["batch_size"] = trial.suggest_int("batch_size", 1024, 61440, step=1024)
 
     config["scheduler"] = trial.suggest_categorical(
         "scheduler",
         ["plateau", "cosanneal", "cosannealwarmrestart", "step", "multistep"]
     )
     if config["scheduler"] == "plateau":
-        config["patience"] = trial.suggest_int("plateau_patience", 1, 25)
+        config["patience"] = trial.suggest_int("plateau_patience", 5, 20)
     elif config["scheduler"] == "cosannealwarmrestart":
         config["warm_restart_epochs"] = trial.suggest_int("warm_restart_epochs", 20, 100)
         config["warm_restart_cycle_mult"] = trial.suggest_int("warm_restart_cycle_mult", 1, 5)
@@ -853,22 +853,22 @@ def objective(trial: optuna.trial.Trial, config, exp_id):
         config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
     elif config["scheduler"] == "multistep":
         config["scheduler_milestones"] = []
-        n_milestones = trial.suggest_int("n_milestones", 3, 10)
+        n_milestones = trial.suggest_int("n_milestones", 1, 3)
         prev_milestone = 0
         for i in range(n_milestones):
-            prev_milestone = trial.suggest_int(f"multistep_milestone{i}", prev_milestone + 5, min(prev_milestone + 100, config["epochs"]))
+            prev_milestone = trial.suggest_int(f"multistep_milestone{i}", prev_milestone + 5, min(prev_milestone + 30, config["epochs"]))
             config["scheduler_milestones"].append(prev_milestone)
         config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
 
-    config["min_learning_rate"] = trial.suggest_float("min_learning_rate", 1e-8, 1e-5, log=True)
+    config["min_learning_rate"] = trial.suggest_float("min_learning_rate", 1e-8, 1e-6, log=True)
     config["start_learning_rate"] = trial.suggest_float("start_learning_rate", 1e-5, 2e-3, log=True)
     
 
-    flogger.info(f"Running optuna trial: {trial.number}")
-    flogger.info(f"With config: {pformat(config)}")
+    config["model_name"] = f"trial{trial.number}_" + config["orignal_model_name"]
 
     # Run Trial
-    config["model_name"] += f"_trial{trial.number}"
+    flogger.info(f"Running optuna trial: {trial.number}")
+    flogger.info(f"With config: {pformat(config)}")
     with mlflow.start_run(run_name=config["model_name"], experiment_id=exp_id):
         mlflow.log_params(config)
         result = run_training_run(config, trial)
@@ -880,8 +880,18 @@ def optuna_training(config, exp_id):
         direction="minimize",
         storage="sqlite:///orbit_study_storage.db",
         study_name=config["study_name"],
-        load_if_exists=True
+        load_if_exists=True,
+        pruner=optuna.pruners.HyperbandPruner(
+            min_resource=35,
+            max_resource=config["epochs"],
+            reduction_factor=3
+        ),
+        sampler=optuna.samplers.TPESampler(
+            n_startup_trials=20,
+            multivariate=True
+        )
     )
+    config["orignal_model_name"] = config["model_name"]
     study.optimize(lambda trial: objective(trial, config, exp_id), n_trials=config["n_trials"], timeout=None)
 
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])

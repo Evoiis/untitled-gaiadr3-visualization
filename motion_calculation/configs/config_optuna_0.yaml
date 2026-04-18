@@ -5,6 +5,7 @@ use_optuna: True
 model_name: orbit_mlp_optuna_0.pt
 n_trials: 100
 study_name: study_alpha
+epochs: 100
 
 # Base parameters, not changed by optuna
 use_dataloader: False
