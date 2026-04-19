@@ -1,0 +1,26 @@
+model_name: orbit_mlp_7.pt
+
+# Dataset Name: 15_300k
+norm_path: "norms/orbit_norm_data_15_300k.json"
+val_data_path: data/dataset_15_300k/validation_data
+test_data_path: data/dataset_15_300k/test_data
+training_data_path: data/dataset_15_300k/training_data
+
+hidden_layers: [256, 256, 256, 256, 256, 256, 256, 256, 256]
+epochs: 400
+batch_size: 4096
+
+use_dataloader: False
+use_gradient_clipping: False
+data_dtype: fp32 # [fp16, fp32, bf16]
+
+grad_clip_max_norm: 0.1
+optimizer: adam # [adam, adamW]
+
+runs:
+  1:
+    training_data_filter: /orbit_train_*.npy
+    min_learning_rate: 0.000001
+    start_learning_rate: 0.001
+    scheduler: plateau
+    patience: 15

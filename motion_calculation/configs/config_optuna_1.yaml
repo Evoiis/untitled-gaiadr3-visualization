@@ -1,0 +1,16 @@
+# Base config for optuna run
+use_optuna: True
+
+# Optuna Parameters
+model_name: orbit_mlp_optuna_1.pt
+n_trials: 60
+study_name: study_beta
+epochs: 50
+data_set_name: "14_20p"
+
+# Base parameters, not changed by optuna
+use_dataloader: False
+use_gradient_clipping: False
+data_dtype: fp32 # [fp16, fp32, bf16]
+optimizer: adam # [adam, adamW]
+training_data_filter: /orbit_train_*.npy

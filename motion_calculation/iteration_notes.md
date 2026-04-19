@@ -506,7 +506,7 @@ Result:
 Result:
 - 5.7671106036248565 parsecs test error
 
-#### 34.3: (training_data_14_20p)
+#### 34.3: (training_data_14_20p) BEST SO FAR
 - Hidden layers: [256, 256, 256, 256, 256, 256, 256, 256, 256]
     - Wider but similar amount of parameters as my current default: [512, 512, 256, 256, 128]
 - Batch size 4096
@@ -558,10 +558,31 @@ Iteration 35. MLflow Integration
 https://mlflow.org/docs/latest/ml/deep-learning/pytorch/index.html
 - Integrate mlflow to track metrics during training
 
+- Graphs are great
+- So much easier to view data and compare runs
 
 Iteration Optuna 0. Optuna Integration
 ---
 - Try hyperparameter tuning with optuna
+
+- Didn't really work out that well
+    - Ended up wasting a lot of compute & time
+
+I think it didn't work out well because:
+- Lack of compute meant I had to squish the search space quite a bit
+    - Small epoch space
+
+
+
+Iteration 36. Manual with Optuna results
+---
+
+
+Iteration 37. Continue manual testing
+---
+
+- Continue from best record: iteration 34.3
+
 
 Future Iterations:
 - Residual NN

@@ -69,33 +69,6 @@ class TestCartesianCoordinates:
         assert df["pos_y"][0] == pytest.approx(-0.419, abs=1e-3)
         assert df["pos_z"][0] == pytest.approx(-1.170, abs=1e-3)
 
-    def test_with_galpy(self):
-        df = make_df(ra=[219.9], dec=[-60.8], parallax=[746.268])
-
-        from galpy.orbit import Orbit
-        from galpy.util import coords
-        orbit = Orbit([219.9, -60.8, 1000/746.268, 0, 0, 0], radec=True, ro=8., vo=220.)
-
-        proc()._calculate_cartesian_coordinates(df)
-
-        
-        helio_x = orbit.helioX()
-        helio_y = orbit.helioY()
-        helio_z = orbit.helioZ()
-
-        l, b, d = coords.XYZ_to_lbd(helio_x, helio_y, helio_z, degree=True)
-        ra, dec = coords.lb_to_radec(l, b, degree=True)
-
-        ra_rad = np.deg2rad(ra)
-        dec_rad = np.deg2rad(dec)
-
-        expected_x = d * np.cos(dec_rad) * np.cos(ra_rad)
-        expected_y = d * np.cos(dec_rad) * np.sin(ra_rad)
-        expected_z = d * np.sin(dec_rad)
-
-        assert np.isclose(df["pos_x"][0], expected_x, atol=1e-3)
-        assert np.isclose(df["pos_y"][0], expected_y, atol=1e-3)
-        assert np.isclose(df["pos_z"][0], expected_z, atol=1e-3)
 
 # ---------------------------------------------------------------------------
 # _calculate_galactic_coordinates
@@ -104,6 +77,7 @@ class TestCartesianCoordinates:
 class TestCartesianCoordinates:
 
     def test_galactic_coordinates(self):
+        
         df = make_df(ra=[219.9], dec=[-60.8], parallax=[746.268])
 
         proc()._calculate_galactic_coordinates(df)

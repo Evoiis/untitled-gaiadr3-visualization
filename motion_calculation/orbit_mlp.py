@@ -768,11 +768,16 @@ def run_training_run(config, trial: optuna.trial.Trial = None):
         test_loss = evaluate_with_dataloader(model, test_loader, loss_fn)
     else:
         test_loss = evaluate_with_full_dataset_on_gpu(model, test_X, test_y, loss_fn, config["batch_size"])
+    
     if "loss_fn" in config and config["loss_fn"] == "huber":
         test_pc = loss_to_parsecs_huber(test_loss, norm_stats)
     else:
         test_pc = loss_to_parsecs(test_loss, norm_stats)
 
+    mlflow.pytorch.log_metrics({
+        "test_loss": test_loss,
+        "test_pc_loss": test_pc
+    }, config["model_name"])
     flogger.info(f"{test_pc} parsecs test error")
     return test_pc
 
@@ -813,7 +818,7 @@ def manual_training(config, exp_id):
         if config["model_name"] in os.listdir("."):
             shutil.copyfile(config["model_name"], "r" + str(run - 1) + "_" + config["model_name"])
         flogger.info(f"\n\nStarting run: {run}")
-        with mlflow.start_run(run_name=config["model_name"] + "_" + str(run), experiment_id=exp_id):
+        with mlflow.start_run(run_name=config["model_name"] + "_run" + str(run), experiment_id=exp_id):
             run_config = config | runs[run]
             mlflow.log_params(run_config)
             run_training_run(run_config)

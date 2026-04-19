@@ -186,7 +186,7 @@ class TestProcessData:
         """Verify all four compute stages are called."""
         p = proc()
         calls = []
-        p._calculate_cartesian_coordinates = lambda df: calls.append("cartesian")
+        p._calculate_galactic_coordinates = lambda df: calls.append("coords")
         p._calculate_rgb_color             = lambda df: calls.append("color")
         p._calculate_star_brightness       = lambda df: calls.append("brightness")
         p._calculate_star_size             = lambda df: calls.append("size")
@@ -194,7 +194,7 @@ class TestProcessData:
         p._serialize_into_msg              = lambda df: calls.append("serialize")
 
         p.process_data(make_raw_df())
-        assert calls == ["cartesian", "color", "brightness", "size", "match", "serialize"]
+        assert calls == ["coords", "color", "brightness", "size", "match", "serialize"]
 
     def test_timestamp_present_in_output(self):
         df = make_raw_df()

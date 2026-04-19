@@ -20,7 +20,7 @@ df = gqw.get_data(8)
 print("Query time taken: ", time() - start)
 
 gdp = GaiaDataProcessor("data/")
-gdp._calculate_cartesian_coordinates(df)
+gdp._calculate_galactic_coordinates(df)
 gdp._calculate_rgb_color(df)
 gdp._calculate_star_brightness(df)
 gdp._calculate_star_size(df)

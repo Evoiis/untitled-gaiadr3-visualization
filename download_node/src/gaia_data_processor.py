@@ -19,8 +19,7 @@ class GaiaDataProcessor():
 
     def process_data(self, df: pd.DataFrame):
         self.logger.info("Processing Gaia Data")
-        self._calculate_cartesian_coordinates(df)
-        # self._calculate_galactic_coordinates(df)
+        self._calculate_galactic_coordinates(df)
         self._calculate_rgb_color(df)
         self._calculate_star_brightness(df)
         self._calculate_star_size(df)
