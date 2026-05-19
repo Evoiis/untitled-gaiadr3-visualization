@@ -76,7 +76,7 @@ class OrbitDataset(Dataset):
         data  = np.concatenate([np.load(f) for f in files], axis=0)
 
         X = data[:, :6].astype(np.float32)
-        y = (data[:, 7:] - data[:, :3]).astype(np.float32)
+        y = data[:, 7:].astype(np.float32)
         t = data[:, 6].astype(np.float32)
 
         X = add_features(X, t)
@@ -131,7 +131,7 @@ def compute_norm_stats_from_files(folder_paths: list, file_name) -> dict:
     for f in files:
         data  = np.load(f,)
         X = data[:, :6].astype(np.float32)
-        y = (data[:, 7:] - data[:, :3]).astype(np.float32)
+        y = data[:, 7:].astype(np.float32)
         t = data[:, 6].astype(np.float32)
         X = add_features(X, t)
         n += len(X)
@@ -145,7 +145,7 @@ def compute_norm_stats_from_files(folder_paths: list, file_name) -> dict:
     for f in files:
         data  = np.load(f,)
         X = data[:, :6].astype(np.float32)
-        y = (data[:, 7:] - data[:, :3]).astype(np.float32)
+        y = data[:, 7:].astype(np.float32)
         t = data[:, 6].astype(np.float32)
         X = add_features(X, t)
         X_sq_sum += ((X - X_mean) ** 2).sum(axis=0)
@@ -478,7 +478,7 @@ def predict(model, norm_stats: dict, x0, y0, z0, vx0, vy0, vz0, t) -> tuple:
 
     flogger.info(f"Predicted, {time.time() - start}")
     y = y_norm * norm_stats["y_std"] + norm_stats["y_mean"]
-    return x0 + y[0, 0], y0 + y[0, 1], z0 + y[0, 2]
+    return y[0, 0], y[0, 1], y[0, 2]
 
 
 def predict_batch(model, norm_stats: dict, inputs: np.ndarray) -> np.ndarray:
@@ -500,8 +500,7 @@ def predict_batch(model, norm_stats: dict, inputs: np.ndarray) -> np.ndarray:
     with torch.no_grad():
         y_norm = model(X_tensor).float().cpu().numpy()
 
-    displacement = y_norm * norm_stats["y_std"] + norm_stats["y_mean"]
-    return inputs[:, :3] + displacement
+    return y_norm * norm_stats["y_std"] + norm_stats["y_mean"]
 
 
 # ─── Main ────────────────────────────────────────────────────────────────────

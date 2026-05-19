@@ -25,14 +25,14 @@ OVERRIDE_MODEL_NAME = None
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-CONFIG_FILE_PATH = "configs/config_34.3.yaml"
+CONFIG_FILE_PATH = "configs/config_40.yaml"
 # OVERRIDE_MODEL_NAME = "prev_models/orbit_mlp_7.pt"
 
 test_data_folders = [
     # "prev_data/test_data_3",
-    "test_data_12",
+    # "test_data_12",
     # "data/dataset_13S/test_data",
-    # "data/dataset_14_20p/test_data",
+    "data/dataset_14_20p/test_data",
     # "data/dataset_15_300k/test_data",
 ]
 

@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fstar_data.proto\x12\x08mwm_msgs\"\xa8\x01\n\x08StarData\x12\x11\n\x04name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05pos_x\x18\x02 \x01(\x01\x12\r\n\x05pos_y\x18\x03 \x01(\x01\x12\r\n\x05pos_z\x18\x04 \x01(\x01\x12\x12\n\nbrightness\x18\x05 \x01(\x02\x12\x0c\n\x04size\x18\x06 \x01(\x02\x12\x0f\n\x07\x63olor_r\x18\x07 \x01(\x05\x12\x0f\n\x07\x63olor_g\x18\x08 \x01(\x05\x12\x0f\n\x07\x63olor_b\x18\t \x01(\x05\x42\x07\n\x05_name\"\x87\x01\n\x05Stars\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12)\n\x05stars\x18\x02 \x03(\x0b\x32\x1a.mwm_msgs.Stars.StarsEntry\x1a@\n\nStarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.mwm_msgs.StarData:\x02\x38\x01\"3\n\x0b\x44\x61taRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x11\n\tnode_name\x18\x02 \x01(\tb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fstar_data.proto\x12\x08mwm_msgs\"c\n\x0b\x44\x61taRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x11\n\tnode_name\x18\x02 \x01(\t\x12.\n\x0estar_data_type\x18\x03 \x01(\x0e\x32\x16.mwm_msgs.StarDataType\"\xa8\x01\n\x08StarData\x12\x11\n\x04name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05pos_x\x18\x02 \x01(\x01\x12\r\n\x05pos_y\x18\x03 \x01(\x01\x12\r\n\x05pos_z\x18\x04 \x01(\x01\x12\x12\n\nbrightness\x18\x05 \x01(\x02\x12\x0c\n\x04size\x18\x06 \x01(\x02\x12\x0f\n\x07\x63olor_r\x18\x07 \x01(\x05\x12\x0f\n\x07\x63olor_g\x18\x08 \x01(\x05\x12\x0f\n\x07\x63olor_b\x18\t \x01(\x05\x42\x07\n\x05_name\"\x87\x01\n\x05Stars\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12)\n\x05stars\x18\x02 \x03(\x0b\x32\x1a.mwm_msgs.Stars.StarsEntry\x1a@\n\nStarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.mwm_msgs.StarData:\x02\x38\x01\"q\n\x0eMotionStarData\x12\n\n\x02ra\x18\x01 \x01(\x01\x12\x0b\n\x03\x64\x65\x63\x18\x02 \x01(\x01\x12\x10\n\x08\x64ist_kpc\x18\x03 \x01(\x01\x12\x0c\n\x04pmra\x18\x04 \x01(\x01\x12\r\n\x05pmdec\x18\x05 \x01(\x01\x12\x17\n\x0fradial_velocity\x18\x06 \x01(\x01\"\x99\x01\n\x0bMotionStars\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12/\n\x05stars\x18\x02 \x03(\x0b\x32 .mwm_msgs.MotionStars.StarsEntry\x1a\x46\n\nStarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.mwm_msgs.MotionStarData:\x02\x38\x01*3\n\x0cStarDataType\x12\r\n\tSTAR_DATA\x10\x00\x12\x14\n\x10MOTION_STAR_DATA\x10\x01\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'star_data_pb2', globals())
@@ -22,12 +22,22 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _STARS_STARSENTRY._options = None
   _STARS_STARSENTRY._serialized_options = b'8\001'
-  _STARDATA._serialized_start=30
-  _STARDATA._serialized_end=198
-  _STARS._serialized_start=201
-  _STARS._serialized_end=336
-  _STARS_STARSENTRY._serialized_start=272
-  _STARS_STARSENTRY._serialized_end=336
-  _DATAREQUEST._serialized_start=338
-  _DATAREQUEST._serialized_end=389
+  _MOTIONSTARS_STARSENTRY._options = None
+  _MOTIONSTARS_STARSENTRY._serialized_options = b'8\001'
+  _STARDATATYPE._serialized_start=710
+  _STARDATATYPE._serialized_end=761
+  _DATAREQUEST._serialized_start=29
+  _DATAREQUEST._serialized_end=128
+  _STARDATA._serialized_start=131
+  _STARDATA._serialized_end=299
+  _STARS._serialized_start=302
+  _STARS._serialized_end=437
+  _STARS_STARSENTRY._serialized_start=373
+  _STARS_STARSENTRY._serialized_end=437
+  _MOTIONSTARDATA._serialized_start=439
+  _MOTIONSTARDATA._serialized_end=552
+  _MOTIONSTARS._serialized_start=555
+  _MOTIONSTARS._serialized_end=708
+  _MOTIONSTARS_STARSENTRY._serialized_start=638
+  _MOTIONSTARS_STARSENTRY._serialized_end=708
 # @@protoc_insertion_point(module_scope)

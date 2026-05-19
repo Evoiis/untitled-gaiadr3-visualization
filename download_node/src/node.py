@@ -37,6 +37,9 @@ class DownloadNode():
         if self.data is None:
             self.data = self.data_processor.process_data(self.download_wrapper.get_data(self.n_batches))
         return self.data
+    
+    def get_motion_data(self):
+        pass
 
     def run_node(self):
         try:
@@ -63,8 +66,11 @@ class DownloadNode():
             data_req = star_data_pb2.DataRequest()
             data_req.ParseFromString(received)
 
-            self.logger.info(f"Received request at {data_req.timestamp} from {data_req.node_name}")
+            self.logger.info(f"Received request at {data_req.timestamp} from {data_req.node_name}. DT: {data_req.star_data_type}")
 
-            data = self.get_and_process_data()
+            if data_req.star_data_type == star_data_pb2.StarDataType.STAR_DATA:
+                data = self.get_and_process_data()
+            elif data_req.star_data_type == star_data_pb2.StarDataType.MOTION_STAR_DATA:
+                # data = ?
             
             self.socket.send(data)

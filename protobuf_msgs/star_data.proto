@@ -2,7 +2,19 @@ syntax = "proto3";
 
 package mwm_msgs;
 
-// All timestamps should time since epoch in seconds
+// All timestamps should be time since epoch in seconds
+
+enum StarDataType {
+    STAR_DATA = 0;
+    MOTION_STAR_DATA = 1;
+    ORBIT_STAR_DATA = 2;
+}
+
+message DataRequest {
+    int32 timestamp = 1;
+    string node_name = 2;
+    StarDataType star_data_type = 3;
+}
 
 message StarData {
 	optional string name = 1;
@@ -24,7 +36,17 @@ message Stars {
     map<int64, StarData> stars = 2;
 }
 
-message DataRequest {
+message MotionStarData {
+    double ra = 1;
+    double dec = 2;
+    double dist_kpc = 3;
+
+    double pmra = 4;
+    double pmdec = 5;
+    double radial_velocity = 6;
+}
+
+message MotionStars {
     int32 timestamp = 1;
-    string node_name = 2;
+    map<int64, MotionStarData> stars = 2;
 }

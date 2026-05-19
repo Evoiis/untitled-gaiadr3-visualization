@@ -28,6 +28,7 @@ int Node::request_gaia_data(){
     mwm_msgs::DataRequest data_req;
     data_req.set_timestamp(now_seconds);
     data_req.set_node_name("Visualization");
+    data_req.set_star_data_type(mwm_msgs::StarDataType::STAR_DATA);
 
     std::string serialized_data_req;
     if(!data_req.SerializeToString(&serialized_data_req)){
